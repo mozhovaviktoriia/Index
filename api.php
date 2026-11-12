@@ -93,6 +93,21 @@ function is_drawn(PDO $pdo): bool
     return ((int)$pdo->query('SELECT COUNT(*) FROM pairs')->fetchColumn()) > 0;
 }
 
+function get_deadline(PDO $pdo): ?string
+{
+    $st = $pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ?');
+    $st->execute(['checklist_deadline_utc']);
+    $value = $st->fetchColumn();
+    if ($value === false) {
+        return null;
+    }
+    $deadline = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', (string)$value, new DateTimeZone('UTC'));
+    if ($deadline === false) {
+        throw new RuntimeException('Invalid saved checklist deadline');
+    }
+    return $deadline->format('Y-m-d\TH:i:s\Z');
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
         header('Content-Type: text/html; charset=utf-8');
@@ -151,7 +166,16 @@ try {
         t INT NOT NULL DEFAULT 0
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS app_settings (
+        setting_key VARCHAR(64) NOT NULL PRIMARY KEY,
+        setting_value VARCHAR(255) NOT NULL
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+
     switch ($action) {
+        case 'event_info':
+            out(['ok' => true, 'deadline' => get_deadline($pdo), 'drawn' => is_drawn($pdo)]);
+            break;
+
         case 'status':
             $names = $pdo->query('SELECT name FROM participants ORDER BY name')->fetchAll(PDO::FETCH_COLUMN);
             out(['ok' => true, 'names' => $names, 'drawn' => is_drawn($pdo)]);
@@ -245,7 +269,29 @@ try {
         case 'admin_list':
             require_admin($pdo, $in);
             $rows = $pdo->query('SELECT id, name FROM participants ORDER BY id')->fetchAll();
-            out(['ok' => true, 'participants' => $rows, 'drawn' => is_drawn($pdo)]);
+            out(['ok' => true, 'participants' => $rows, 'drawn' => is_drawn($pdo), 'deadline' => get_deadline($pdo)]);
+            break;
+
+        case 'admin_set_deadline':
+            require_admin($pdo, $in);
+            $value = trim((string)($in['deadline'] ?? ''));
+            if ($value === '') {
+                $pdo->prepare('DELETE FROM app_settings WHERE setting_key = ?')->execute(['checklist_deadline_utc']);
+                out(['ok' => true, 'deadline' => null]);
+            }
+            $local = DateTimeImmutable::createFromFormat('!Y-m-d\TH:i', $value, new DateTimeZone('Europe/Kyiv'));
+            $errors = DateTimeImmutable::getLastErrors();
+            if (
+                $local === false
+                || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))
+                || $local->format('Y-m-d\TH:i') !== $value
+            ) {
+                fail('Укажи корректные дату и время по Киеву');
+            }
+            $deadlineUtc = $local->setTimezone(new DateTimeZone('UTC'));
+            $pdo->prepare('REPLACE INTO app_settings (setting_key, setting_value) VALUES (?, ?)')
+                ->execute(['checklist_deadline_utc', $deadlineUtc->format('Y-m-d H:i:s')]);
+            out(['ok' => true, 'deadline' => $deadlineUtc->format('Y-m-d\TH:i:s\Z')]);
             break;
 
         case 'admin_delete':

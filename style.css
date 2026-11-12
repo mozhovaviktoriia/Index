@@ -328,6 +328,24 @@ button.alt:active {
   margin-top:14px;
 }
 
+.deadline-banner {
+  max-width:var(--page);
+  margin:0 auto 14px;
+  padding:12px 16px;
+  background:var(--card);
+  border-radius:16px;
+  text-align:center;
+  font-size:14px;
+}
+
+.deadline-banner strong,.deadline-banner span {
+  display:block;
+}
+
+.deadline-banner span {
+  margin-top:4px;
+}
+
 .warn {
   border:2px solid var(--warm);
 }

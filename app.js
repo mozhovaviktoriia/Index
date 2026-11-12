@@ -1,5 +1,65 @@
 // Запуск страницы: переключение экранов, приветствие, «Узнать, для кого я Санта».
 
+let eventDeadline=null,eventDrawn=false;
+
+function renderDeadline(deadline,drawn){
+  eventDeadline=deadline;
+  eventDrawn=!!drawn;
+  const banner=$("deadline-banner");
+  if(!eventDeadline){
+    banner.classList.add("hide");
+    $("deadline-date").textContent="";
+    $("deadline-countdown").textContent="";
+    $("deadline-note").textContent="";
+    return;
+  }
+  banner.classList.remove("hide");
+  updateDeadline();
+}
+
+function updateDeadline(){
+  if(!eventDeadline)return;
+  const date=new Date(eventDeadline);
+  if(Number.isNaN(date.getTime())){
+    $("deadline-date").textContent="Не удалось прочитать срок чек-листов.";
+    $("deadline-countdown").textContent="";
+    $("deadline-note").textContent="";
+    return;
+  }
+  const formatted=new Intl.DateTimeFormat("ru-RU",{
+    timeZone:"Europe/Kyiv",day:"numeric",month:"long",year:"numeric",
+    hour:"2-digit",minute:"2-digit",hourCycle:"h23"
+  }).format(date);
+  $("deadline-date").textContent="Заполнить чек-листы до "+formatted+" (время Киева).";
+  if(eventDrawn){
+    $("deadline-countdown").textContent="Жеребьёвка уже проведена.";
+    $("deadline-note").textContent="";
+    return;
+  }
+  const left=Math.floor((date.getTime()-Date.now())/1000);
+  if(left<=0){
+    $("deadline-countdown").textContent="Срок заполнения истёк.";
+    $("deadline-note").textContent="Жеребьёвку организатор запускает вручную.";
+    return;
+  }
+  const days=Math.floor(left/86400),hours=Math.floor(left%86400/3600),minutes=Math.floor(left%3600/60),seconds=left%60;
+  const pad=n=>String(n).padStart(2,"0");
+  $("deadline-countdown").textContent="До срока осталось: "+(days?days+" дн ":"")+pad(hours)+" ч "+pad(minutes)+" мин "+pad(seconds)+" сек";
+  $("deadline-note").textContent="После срока организатор вручную начнёт жеребьёвку.";
+}
+
+async function loadEventInfo(){
+  const res=await api("event_info");
+  if(!res.ok){
+    $("deadline-banner").classList.remove("hide");
+    $("deadline-date").textContent="Не удалось загрузить срок чек-листов.";
+    $("deadline-countdown").textContent=res.error||"Обнови страницу позже.";
+    $("deadline-note").textContent="";
+    return;
+  }
+  renderDeadline(res.deadline,res.drawn);
+}
+
 // Переключение экранов
 function show(v){
   ["form","check","draw","list"].forEach(k=>$("v-"+k).classList.toggle("hide",k!==v));
@@ -146,3 +206,6 @@ if(loadDraft()){
   enterForm();
   modal("Ответы на месте","<p>Страница обновилась, и твои ответы вернулись. Нажми «Проверить анкету» ещё раз.</p>");
 }
+loadEventInfo();
+setInterval(updateDeadline,1000);
+setInterval(loadEventInfo,60000);

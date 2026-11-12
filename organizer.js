@@ -7,6 +7,19 @@ function renderOrg(res){
   $("chips").innerHTML=res.participants.map(p=>'<span class="chip">'+esc(p.name)+'<button class="x" data-r="'+(+p.id)+'" aria-label="Удалить">✕</button></span>').join("");
   $("orgstate").textContent=orgDrawn?"Жеребьёвка проведена. Кто кому дарит, здесь не видно.":"Жеребьёвка ещё не проводилась.";
   $("go").textContent=orgDrawn?"Провести заново":"Провести жеребьёвку";
+  const deadlineInput=res.deadline?kyivDateTimeInput(res.deadline):"";
+  $("deadline-input").value=deadlineInput||"";
+  $("deadline-status").textContent=res.deadline?(deadlineInput?"Срок установлен (время Киева).":"Не удалось прочитать сохранённый срок."):"Срок пока не установлен.";
+  renderDeadline(res.deadline,orgDrawn);
+}
+
+function kyivDateTimeInput(value){
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return null;
+  const parts={};
+  new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Kyiv",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"})
+    .formatToParts(date).forEach(p=>{parts[p.type]=p.value;});
+  return parts.year+"-"+parts.month+"-"+parts.day+"T"+parts.hour+":"+parts.minute;
 }
 
 async function loadOrg(){
@@ -78,6 +91,29 @@ $("go").onclick=()=>{
   d.showModal();
 };
 $("refresh").onclick=loadOrg;
+
+async function saveDeadline(value){
+  const save=$("deadline-save"),clear=$("deadline-clear");
+  save.disabled=true;
+  clear.disabled=true;
+  $("deadline-status").textContent="Сохраняю…";
+  const res=await api("admin_set_deadline",{password:orgPw,deadline:value});
+  save.disabled=false;
+  clear.disabled=false;
+  if(!res.ok){
+    $("deadline-status").textContent="";
+    showErr(res,false);
+    return;
+  }
+  const deadlineInput=res.deadline?kyivDateTimeInput(res.deadline):"";
+  $("deadline-input").value=deadlineInput||"";
+  $("deadline-status").textContent=res.deadline?(deadlineInput?"Срок сохранён (время Киева).":"Срок сохранён, но не удалось прочитать дату."):"Срок убран.";
+  renderDeadline(res.deadline,orgDrawn);
+}
+
+$("deadline-save").onclick=()=>saveDeadline($("deadline-input").value);
+$("deadline-clear").onclick=()=>saveDeadline("");
+
 // Удаление участника
 $("chips").addEventListener("click",e=>{
   const b=e.target.closest("button[data-r]");

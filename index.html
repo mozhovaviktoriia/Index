@@ -22,6 +22,11 @@
 <div class="lights" aria-hidden="true"></div>
 </div>
 <main>
+<div id="deadline-banner" class="deadline-banner hide" role="status" aria-live="polite">
+  <strong id="deadline-date"></strong>
+  <span id="deadline-countdown"></span>
+  <span id="deadline-note" class="sub"></span>
+</div>
 <section id="v-welcome" class="welcome">
   <div class="big" aria-label="2027">2<i>0</i>27</div>
   <a class="cat-link" href="https://tenor.com/view/hi-otag-cat-gif-496667468136015874" target="_blank" rel="noopener noreferrer" aria-label="Открыть GIF на Tenor">
@@ -43,6 +48,14 @@
   <h1>Организатор</h1>
   <p class="sub" id="orgstate"></p>
   <div class="card"><h2 id="count"></h2><div class="chips" id="chips"></div></div>
+  <div class="card">
+    <h2>Срок заполнения чек-листов</h2>
+    <p class="hint">Время указано по Киеву. После срока организатор запускает жеребьёвку вручную.</p>
+    <label for="deadline-input">Дата и время</label>
+    <input id="deadline-input" type="datetime-local">
+    <div class="row"><button id="deadline-save">Сохранить срок</button><button class="alt" id="deadline-clear">Убрать срок</button></div>
+    <p id="deadline-status" class="sub" aria-live="polite"></p>
+  </div>
   <div class="row"><button id="go">Провести жеребьёвку</button><button class="alt" id="refresh">Обновить список</button></div>
   <div id="pairs"></div>
 </section>

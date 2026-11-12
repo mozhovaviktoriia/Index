@@ -13,7 +13,6 @@
   --onink:#fff;
   --pink:#FF5CA8;
   --pinkink:#2A1020;
-  --cat:#1B1020;
   --warm:#A3280A;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
@@ -29,7 +28,6 @@
     --line:rgba(246,238,247,.24);
     --on:#8EA9D8;
     --onink:#2A1A2F;
-    --cat:#46284E;
     --warm:#FF9A7A;
   }
 }
@@ -42,7 +40,6 @@
   --line:rgba(246,238,247,.24);
   --on:#8EA9D8;
   --onink:#2A1A2F;
-  --cat:#46284E;
   --warm:#FF9A7A;
 }
 
@@ -519,15 +516,17 @@ nav button[data-v="list"] {
   color:#fff;
 }
 
-.cat {
+.cat-link {
   display:block;
   width:200px;
   max-width:70%;
   margin:6px auto 0;
 }
 
-.cat .b {
-  fill:var(--cat);
+.cat {
+  display:block;
+  width:100%;
+  height:auto;
 }
 
 .welcome h1 {
@@ -537,6 +536,30 @@ nav button[data-v="list"] {
 .welcome button {
   width:100%;
   margin-top:14px;
+}
+
+.welcome #edit {
+  display:block;
+  width:auto;
+  min-height:44px;
+  margin:4px auto 0;
+  padding:8px 12px;
+  background:transparent;
+  color:var(--mute);
+  border:0;
+  box-shadow:none;
+  font-size:14px;
+  font-weight:500;
+}
+
+.welcome #edit:hover {
+  color:var(--ink);
+  text-decoration:underline;
+}
+
+.welcome #edit:active {
+  transform:none;
+  box-shadow:none;
 }
 
 /* ===== Адаптивность: телефоны, планшеты, ноутбуки ===== */

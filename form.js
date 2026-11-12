@@ -24,6 +24,31 @@ function renderForm(){
   $("v-form").innerHTML=h;
 }
 
+// Загружает сохранённые ответы в форму после проверки имени и секретного слова.
+function fillForm(data,name,pin){
+  const d=data&&typeof data==="object"&&!Array.isArray(data)?data:{};
+  const objectValue=value=>value&&typeof value==="object"&&!Array.isArray(value)?value:{};
+  me={pairs:objectValue(d.pairs),yn:objectValue(d.yn),chips:objectValue(d.chips)};
+  $("f-name").value=name;
+  $("f-name").readOnly=true;
+  $("f-pin").value=pin;
+  $("f-pin").type="password";
+  $("f-pin").readOnly=true;
+  const f=objectValue(d.f);
+  ["age"].concat(SIZES.map(s=>s[0]),TEXT.map(t=>t[0])).forEach(k=>{
+    const el=$("f-"+k);
+    el.value=typeof f[k]==="string"?f[k]:"";
+  });
+  $("f-surprise").value=f.surprise||"3";
+  GROUPS.forEach(g=>{
+    const selected=new Set(g.o);
+    const values=Array.isArray(me.chips[g.k])?me.chips[g.k]:[];
+    me.chips[g.k]=values;
+    $("c-"+g.k).value=values.filter(v=>typeof v==="string"&&!selected.has(v)).join(", ");
+  });
+  sync();
+}
+
 // Нажата ли кнопка-вариант
 function on(b){
   const d=b.dataset;
@@ -111,7 +136,7 @@ function openCheck(){
     b.disabled=true;
     const old=b.textContent;
     b.textContent="Сохраняю…";
-    const res=await api("register",{name:d.name,pin:$("f-pin").value.trim(),data:{yn:d.yn,chips:d.chips,f:d.f}});
+    const res=await api("register",{name:editingName||d.name,pin:$("f-pin").value.trim(),data:{yn:d.yn,chips:d.chips,f:d.f}});
     if(!res.ok){
       b.disabled=false;
       b.textContent=old;
@@ -119,6 +144,7 @@ function openCheck(){
       return;
     }
     clearDraft();
+    editingName="";
     $("v-check").innerHTML='<h1>Анкета сохранена!</h1><div class="card"><p>'+(res.updated?"Анкету обновили.":"Ты в списке участников.")+' Когда организатор проведёт жеребьёвку, открой сайт, нажми «Узнать, для кого я Санта» и введи своё имя и секретное слово.</p><div class="row"><button id="rv2">Узнать, для кого я Санта</button></div></div>';
     $("rv2").onclick=gotoReveal;
     window.scrollTo(0,0);

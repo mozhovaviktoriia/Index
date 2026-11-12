@@ -56,6 +56,42 @@ $("havecode").onclick=()=>{
   const hid=$("codebox").classList.toggle("hide");
   if(!hid)modal("Как узнать свою пару",'<ol class="steps"><li>Введи имя так, как писал(а) в анкете.</li><li>Введи своё секретное слово.</li><li>Если жеребьёвки ещё не было, загляни позже.</li></ol>');
 };
+// Участник загружает свою анкету после проверки секретного слова
+$("edit").onclick=()=>{
+  const d=$("dlg");
+  d.innerHTML='<h2>Изменить свою анкету</h2><p class="sub">Введи имя и секретное слово из анкеты.</p><label for="edit-name">Имя</label><input id="edit-name" autocomplete="off"><label for="edit-pin">Секретное слово</label><input id="edit-pin" type="password" autocomplete="off"><div id="edit-err"></div><div class="row"><button id="edit-load">Загрузить анкету</button><button class="alt" id="edit-cancel">Отмена</button></div>';
+  $("edit-cancel").onclick=()=>d.close();
+  $("edit-load").onclick=async()=>{
+    const name=$("edit-name").value.trim(),pin=$("edit-pin").value.trim();
+    if(!name||!pin){
+      $("edit-err").innerHTML='<p class="err">Введи имя и секретное слово</p>';
+      return;
+    }
+    const b=$("edit-load");
+    b.disabled=true;
+    const res=await api("edit_load",{name:name,pin:pin});
+    b.disabled=false;
+    if(!res.ok){
+      if(res.challenge){
+        d.close();
+        showErr(res,false);
+      }
+      else $("edit-err").innerHTML='<p class="err">'+esc(res.error||"Ошибка")+'</p>';
+      return;
+    }
+    fillForm(res.data,name,pin);
+    editingName=name;
+    $("v-welcome").classList.add("hide");
+    $("top").classList.remove("hide");
+    $("v-form").querySelector("h1").textContent="Редактирование анкеты";
+    $("make").textContent="Проверить изменения";
+    d.close();
+    show("form");
+  };
+  $("edit-name").addEventListener("keydown",e=>{if(e.key==="Enter")$("edit-load").click();});
+  $("edit-pin").addEventListener("keydown",e=>{if(e.key==="Enter")$("edit-load").click();});
+  d.showModal();
+};
 $("reveal").onclick=async()=>{
   const name=$("rname").value.trim(),pin=$("rpin").value.trim();
   if(!name||!pin){
@@ -86,6 +122,16 @@ $("reveal").onclick=async()=>{
 // Кнопка «Поехали» на приветствии
 $("start").onclick=()=>{
   const nick=$("nick").value.trim();
+  if(editingName){
+    me={pairs:{},yn:{},chips:{}};
+    renderForm();
+    sync();
+  }
+  editingName="";
+  $("f-name").readOnly=false;
+  $("f-pin").readOnly=false;
+  $("f-pin").type="text";
+  $("make").textContent="Проверить анкету";
   $("v-welcome").classList.add("hide");
   $("top").classList.remove("hide");
   if(nick)$("f-name").value=nick;

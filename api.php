@@ -194,6 +194,25 @@ try {
             out(['ok' => true, 'updated' => false]);
             break;
 
+        case 'edit_load':
+            $name = clean_name((string)($in['name'] ?? ''));
+            $pin = clean_pin((string)($in['pin'] ?? ''));
+            if ($name === '' || $pin === '') {
+                fail('Введи имя и секретное слово');
+            }
+            $st = $pdo->prepare('SELECT id, pin_hash, data FROM participants WHERE name = ?');
+            $st->execute([$name]);
+            $row = $st->fetch();
+            if (!$row) {
+                fail('Такого имени нет в списке. Проверь, как оно написано в анкете.', 404);
+            }
+            if (!check_pin($pdo, $name, $pin, (string)$row['pin_hash'])) {
+                fail('Секретное слово не подходит', 403);
+            }
+            $decoded = json_decode((string)$row['data'], true);
+            out(['ok' => true, 'data' => is_array($decoded) ? $decoded : new stdClass()]);
+            break;
+
         case 'reveal':
             $name = clean_name((string)($in['name'] ?? ''));
             $pin = clean_pin((string)($in['pin'] ?? ''));

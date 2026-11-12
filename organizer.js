@@ -7,6 +7,7 @@ function renderOrg(res){
   $("chips").innerHTML=res.participants.map(p=>'<span class="chip">'+esc(p.name)+'<button class="x" data-r="'+(+p.id)+'" aria-label="Удалить">✕</button></span>').join("");
   $("orgstate").textContent=orgDrawn?"Жеребьёвка проведена. Кто кому дарит, здесь не видно.":"Жеребьёвка ещё не проводилась.";
   $("go").textContent=orgDrawn?"Провести заново":"Провести жеребьёвку";
+  $("reset-draw").classList.toggle("hide",!orgDrawn);
   const deadlineInput=res.deadline?kyivDateTimeInput(res.deadline):"";
   $("deadline-input").value=deadlineInput||"";
   $("deadline-status").textContent=res.deadline?(deadlineInput?"Срок установлен (время Киева).":"Не удалось прочитать сохранённый срок."):"Срок пока не установлен.";
@@ -87,6 +88,26 @@ $("go").onclick=()=>{
   $("rdok").onclick=()=>{
     d.close();
     doDraw();
+  };
+  d.showModal();
+};
+$("reset-draw").onclick=()=>{
+  const d=$("dlg");
+  d.innerHTML='<h2>Сбросить жеребьёвку?</h2><p>Все пары будут удалены, а участники снова смогут редактировать чек-листы. Список участников и срок заполнения сохранятся.</p><p class="sub">Если участники уже узнали пары, сообщи им, что прежняя жеребьёвка отменена.</p><div class="row"><button id="reset-ok">Сбросить жеребьёвку</button><button class="alt" id="reset-cancel">Отмена</button></div>';
+  $("reset-cancel").onclick=()=>d.close();
+  $("reset-ok").onclick=async()=>{
+    const button=$("reset-ok");
+    button.disabled=true;
+    const res=await api("admin_reset_draw",{password:orgPw});
+    if(!res.ok){
+      button.disabled=false;
+      showErr(res,false);
+      return;
+    }
+    d.close();
+    $("pairs").innerHTML="";
+    await loadOrg();
+    modal("Жеребьёвка сброшена","<p>Пары удалены, чек-листы снова можно редактировать.</p>");
   };
   d.showModal();
 };

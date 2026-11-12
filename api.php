@@ -363,6 +363,20 @@ try {
             out(['ok' => true, 'count' => $n]);
             break;
 
+        case 'admin_reset_draw':
+            require_admin($pdo, $in);
+            $pdo->beginTransaction();
+            if (!lock_checklist_state($pdo)) {
+                $pdo->rollBack();
+                fail('Жеребьёвка ещё не проводилась.', 409);
+            }
+            $pdo->exec('DELETE FROM pairs');
+            $pdo->prepare('UPDATE app_settings SET setting_value = ? WHERE setting_key = ?')
+                ->execute(['0', 'checklist_locked']);
+            $pdo->commit();
+            out(['ok' => true]);
+            break;
+
         default:
             fail('Неизвестное действие');
     }

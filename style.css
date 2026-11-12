@@ -333,8 +333,9 @@ button.alt:active {
   overflow:hidden;
   background:#FF5CA8;
   color:#2A1020;
-  font-size:12px;
-  line-height:1.25;
+  font-size:14px;
+  font-weight:700;
+  line-height:1.35;
 }
 
 .deadline-marquee {
@@ -364,28 +365,23 @@ button.alt:active {
 }
 
 .deadline-banner strong {
-  font-weight:700;
+  font-weight:inherit;
 }
 
 .deadline-banner #deadline-countdown {
-  display:inline-flex;
-  align-items:center;
+  display:inline;
   margin:0;
-  padding:4px 10px;
-  border-radius:99px;
-  background:#1C1020;
-  color:#fff;
-  font-size:12px;
-  font-weight:700;
-  line-height:1.1;
+  padding:0;
+  color:inherit;
+  font:inherit;
   font-variant-numeric:tabular-nums;
   white-space:nowrap;
 }
 
 .deadline-banner #deadline-note {
   margin:0;
-  color:#54203B;
-  font-size:11px;
+  color:inherit;
+  font:inherit;
 }
 
 @media (prefers-reduced-motion:reduce) {

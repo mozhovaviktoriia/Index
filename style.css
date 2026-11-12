@@ -288,6 +288,7 @@ button.alt:active {
 
 .yn-label {
   display:block;
+  min-height:3em;
 }
 
 .yn-detail {

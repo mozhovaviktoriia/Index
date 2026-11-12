@@ -106,6 +106,13 @@ p {
   font-size:14px;
 }
 
+.field-hint {
+  margin:0 0 6px;
+  color:var(--mute);
+  font-size:12px;
+  opacity:.8;
+}
+
 .demo {
   background:var(--on);
   color:var(--onink);

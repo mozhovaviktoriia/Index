@@ -19,7 +19,7 @@ function renderForm(){
   });
   h+='<h2>Любишь сюрпризы?</h2><input id="f-surprise" type="range" min="1" max="5" value="3"><div class="pair hint"><span>Спроси меня</span><span>Удиви</span></div>';
   h+='<h2>Немного о себе</h2><div class="fields">'+SIZES.map(s=>field(s[0],s[1])).join("")+'</div>';
-  h+='<h2>Своими словами</h2>'+TEXT.map(t=>'<label for="f-'+t[0]+'">'+t[1]+'</label><textarea id="f-'+t[0]+'"></textarea>').join("");
+  h+='<h2>Своими словами</h2>'+TEXT.map(t=>'<label for="f-'+t[0]+'">'+esc(t[1])+'</label>'+(t[2]?'<p class="field-hint">'+esc(t[2])+'</p>':"")+'<textarea id="f-'+t[0]+'"></textarea>').join("");
   h+='<div class="row"><button id="make">Проверить анкету</button></div><div id="made"></div>';
   $("v-form").innerHTML=h;
 }

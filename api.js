@@ -1,11 +1,12 @@
 // Связь с сервером (api.php) и черновик анкеты.
 
-// Запрос к api.php. Если хостинг вернул не данные, а страницу проверки, пробуем ещё раз
-async function api(action,payload,tries){
-  tries=tries||0;
+// Запрос к api.php. text/plain не вызывает лишнюю проверку для нестандартного JSON POST.
+async function api(action,payload){
   let txt;
+  let status;
   try{
-    const r=await fetch("api.php",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.assign({action:action},payload||{})),credentials:"same-origin"});
+    const r=await fetch("api.php",{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8","Accept":"application/json"},body:JSON.stringify(Object.assign({action:action},payload||{})),credentials:"same-origin"});
+    status=r.status;
     txt=await r.text();
   }catch(e){
     return {ok:false,net:true,error:"Нет связи с сервером. Проверь интернет и попробуй ещё раз."};
@@ -14,11 +15,7 @@ async function api(action,payload,tries){
     return JSON.parse(txt);
   }
   catch(e){
-    if(tries<1){
-      await new Promise(r=>setTimeout(r,700));
-      return api(action,payload,tries+1);
-    }
-    return {ok:false,challenge:true,error:"Хостинг попросил обновить страницу (так работает его защита от ботов)."};
+    return {ok:false,challenge:true,error:"Сервер вернул страницу вместо ответа"+(status?" (HTTP "+status+")":"")+". Открой проверку хостинга в новой вкладке, затем вернись сюда и повтори действие."};
   }
 }
 

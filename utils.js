@@ -19,13 +19,16 @@ function modal(title,body){
   if(!d.open)d.showModal();
 }
 
-// Окошко «обнови страницу»: иногда хостинг просит проверку браузера
+// Окошко проверки хостинга: страница проверки должна открыться отдельно от API-запроса
 function reloadModal(msg,keep){
-  modal("Нужно обновить страницу",'<p>'+esc(msg)+'</p>'+(keep?'<p class="sub">Твои ответы сохранятся.</p>':'')+'<div class="row"><button id="rl">Обновить страницу</button></div>');
-  $("rl").onclick=()=>{
+  const d=$("dlg");
+  d.innerHTML='<h2>Проверка хостинга</h2><p>'+esc(msg)+'</p><p class="sub">Открой проверку в новой вкладке, пройди её, затем вернись и повтори действие.'+(keep?' Твои ответы сохранятся.':'')+'</p><div class="row"><button id="opencheck">Открыть проверку</button><button class="alt" id="dlgok">Понятно</button></div>';
+  $("opencheck").onclick=()=>{
     if(keep)saveDraft();
-    location.reload();
+    window.open("api.php","_blank","noopener");
   };
+  $("dlgok").onclick=()=>d.close();
+  if(!d.open)d.showModal();
 }
 
 // Показывает ошибку от сервера

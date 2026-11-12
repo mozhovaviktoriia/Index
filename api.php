@@ -94,6 +94,11 @@ function is_drawn(PDO $pdo): bool
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Проверка сайта</title><body><main><h1>Проверка сайта</h1><p>Если хостинг показывал проверку, завершите её. Затем вернитесь на страницу Тайного Санты и повторите вход.</p></main></body></html>';
+        exit;
+    }
     fail('Только POST-запросы', 405);
 }
 

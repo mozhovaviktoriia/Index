@@ -15,7 +15,7 @@ function renderForm(){
   });
   h+='</div>';
   GROUPS.forEach(g=>{
-    h+='<h2>'+g.t+'</h2><div class="chips">'+g.o.map(o=>'<button class="opt" data-chip="'+g.k+'" data-v="'+o+'">'+o+'</button>').join("")+'</div><input id="c-'+g.k+'" placeholder="Своё: через запятую">';
+    h+='<div class="choice-group" data-group="'+g.k+'"><h2>'+g.t+'</h2><div class="chips">'+g.o.map(o=>'<button class="opt" data-chip="'+g.k+'" data-v="'+o+'">'+o+'</button>').join("")+'</div><input id="c-'+g.k+'" placeholder="Своё: через запятую"></div>';
   });
   h+='<h2>Любишь сюрпризы?</h2><input id="f-surprise" type="range" min="1" max="5" value="3"><div class="pair hint"><span>Спроси меня</span><span>Удиви</span></div>';
   h+='<h2>Немного о себе</h2><div class="fields">'+SIZES.map(s=>field(s[0],s[1])).join("")+'</div>';
@@ -57,8 +57,23 @@ function on(b){
   return (me.chips[d.chip]||[]).indexOf(d.v)>-1;
 }
 
+const CONDITIONAL_GROUPS={sweet:"Сладкие наборы",scent:"Декор для дома"};
+
+function isGroupExcluded(key){
+  const choice=CONDITIONAL_GROUPS[key];
+  return !!choice&&me.yn[choice]==="n";
+}
+
+function syncConditionalGroups(){
+  Object.keys(CONDITIONAL_GROUPS).forEach(key=>{
+    const group=document.querySelector('[data-group="'+key+'"]');
+    if(group)group.classList.toggle("hide",isGroupExcluded(key));
+  });
+}
+
 // Подсвечивает выбранные кнопки
 function sync(){
+  syncConditionalGroups();
   document.querySelectorAll("#v-form .opt").forEach(b=>b.setAttribute("aria-pressed",on(b)));
 }
 
@@ -162,6 +177,7 @@ function collect(){
   });
   const chips={};
   GROUPS.forEach(g=>{
+    if(isGroupExcluded(g.k))return;
     const a=(me.chips[g.k]||[]).concat(lines($("c-"+g.k).value));
     if(a.length)chips[g.k]=a;
   });

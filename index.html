@@ -22,9 +22,20 @@
 <div class="lights" aria-hidden="true"></div>
 </div>
 <div id="deadline-banner" class="deadline-banner hide" role="status" aria-live="polite">
-  <strong id="deadline-date"></strong>
-  <span id="deadline-countdown"></span>
-  <span id="deadline-note" class="sub"></span>
+  <div class="deadline-marquee">
+    <div class="deadline-marquee-track">
+      <div class="deadline-marquee-item">
+        <strong id="deadline-date"></strong>
+        <span id="deadline-countdown"></span>
+        <span id="deadline-note" class="sub"></span>
+      </div>
+      <div class="deadline-marquee-item" aria-hidden="true">
+        <strong data-deadline-copy="deadline-date"></strong>
+        <span data-deadline-copy="deadline-countdown"></span>
+        <span data-deadline-copy="deadline-note" class="sub"></span>
+      </div>
+    </div>
+  </div>
 </div>
 <main>
 <section id="v-welcome" class="welcome">

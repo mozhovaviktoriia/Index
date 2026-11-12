@@ -2,15 +2,20 @@
 
 let eventDeadline=null,eventDrawn=false;
 
+function setDeadlineText(id,text){
+  $(id).textContent=text;
+  document.querySelectorAll(`[data-deadline-copy="${id}"]`).forEach(node=>node.textContent=text);
+}
+
 function renderDeadline(deadline,drawn){
   eventDeadline=deadline;
   eventDrawn=!!drawn;
   const banner=$("deadline-banner");
   if(!eventDeadline){
     banner.classList.add("hide");
-    $("deadline-date").textContent="";
-    $("deadline-countdown").textContent="";
-    $("deadline-note").textContent="";
+    setDeadlineText("deadline-date","");
+    setDeadlineText("deadline-countdown","");
+    setDeadlineText("deadline-note","");
     return;
   }
   banner.classList.remove("hide");
@@ -21,40 +26,40 @@ function updateDeadline(){
   if(!eventDeadline)return;
   const date=new Date(eventDeadline);
   if(Number.isNaN(date.getTime())){
-    $("deadline-date").textContent="Не удалось прочитать срок чек-листов.";
-    $("deadline-countdown").textContent="";
-    $("deadline-note").textContent="";
+    setDeadlineText("deadline-date","Не удалось прочитать срок чек-листов.");
+    setDeadlineText("deadline-countdown","");
+    setDeadlineText("deadline-note","");
     return;
   }
   const formatted=new Intl.DateTimeFormat("ru-RU",{
     timeZone:"Europe/Kyiv",day:"numeric",month:"long",year:"numeric",
     hour:"2-digit",minute:"2-digit",hourCycle:"h23"
   }).format(date);
-  $("deadline-date").textContent="Заполнить чек-листы до "+formatted+" (время Киева).";
+  setDeadlineText("deadline-date","Заполнить чек-листы до "+formatted+" (время Киева).");
   if(eventDrawn){
-    $("deadline-countdown").textContent="Жеребьёвка уже проведена.";
-    $("deadline-note").textContent="";
+    setDeadlineText("deadline-countdown","Жеребьёвка уже проведена.");
+    setDeadlineText("deadline-note","");
     return;
   }
   const left=Math.floor((date.getTime()-Date.now())/1000);
   if(left<=0){
-    $("deadline-countdown").textContent="Срок заполнения истёк.";
-    $("deadline-note").textContent="Жеребьёвку организатор запускает вручную.";
+    setDeadlineText("deadline-countdown","Срок заполнения истёк.");
+    setDeadlineText("deadline-note","Жеребьёвку организатор запускает вручную.");
     return;
   }
   const days=Math.floor(left/86400),hours=Math.floor(left%86400/3600),minutes=Math.floor(left%3600/60),seconds=left%60;
   const pad=n=>String(n).padStart(2,"0");
-  $("deadline-countdown").textContent="До срока осталось: "+(days?days+" дн ":"")+pad(hours)+" ч "+pad(minutes)+" мин "+pad(seconds)+" сек";
-  $("deadline-note").textContent="После срока организатор вручную начнёт жеребьёвку.";
+  setDeadlineText("deadline-countdown","До срока осталось: "+(days?days+" дн ":"")+pad(hours)+" ч "+pad(minutes)+" мин "+pad(seconds)+" сек");
+  setDeadlineText("deadline-note","После срока организатор вручную начнёт жеребьёвку.");
 }
 
 async function loadEventInfo(){
   const res=await api("event_info");
   if(!res.ok){
     $("deadline-banner").classList.remove("hide");
-    $("deadline-date").textContent="Не удалось загрузить срок чек-листов.";
-    $("deadline-countdown").textContent=res.error||"Обнови страницу позже.";
-    $("deadline-note").textContent="";
+    setDeadlineText("deadline-date","Не удалось загрузить срок чек-листов.");
+    setDeadlineText("deadline-countdown",res.error||"Обнови страницу позже.");
+    setDeadlineText("deadline-note","");
     return;
   }
   renderDeadline(res.deadline,res.drawn);

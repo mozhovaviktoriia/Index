@@ -329,17 +329,38 @@ button.alt:active {
 }
 
 .deadline-banner {
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-wrap:wrap;
-  gap:8px;
-  padding:8px 16px;
-  background:#FFC247;
+  width:100%;
+  overflow:hidden;
+  background:#FF5CA8;
   color:#2A1020;
-  text-align:center;
   font-size:12px;
   line-height:1.25;
+}
+
+.deadline-marquee {
+  width:100%;
+  overflow:hidden;
+}
+
+.deadline-marquee-track {
+  display:flex;
+  width:max-content;
+  animation:deadline-marquee 28s linear infinite;
+}
+
+.deadline-marquee-item {
+  display:flex;
+  align-items:center;
+  flex:0 0 max-content;
+  gap:8px;
+  padding:8px 48px 8px 16px;
+  white-space:nowrap;
+}
+
+@keyframes deadline-marquee {
+  to {
+    transform:translateX(-50%);
+  }
 }
 
 .deadline-banner strong {
@@ -362,10 +383,27 @@ button.alt:active {
 }
 
 .deadline-banner #deadline-note {
-  flex-basis:100%;
   margin:0;
-  color:#432534;
+  color:#54203B;
   font-size:11px;
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .deadline-marquee-track {
+    animation:none;
+  }
+
+  .deadline-marquee-item[aria-hidden="true"] {
+    display:none;
+  }
+
+  .deadline-marquee-item {
+    flex-wrap:wrap;
+    justify-content:center;
+    padding:8px 16px;
+    white-space:normal;
+    text-align:center;
+  }
 }
 
 .warn {

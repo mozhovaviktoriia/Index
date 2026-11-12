@@ -26,7 +26,7 @@ function normalizeYN(values){
 function formatYNLabel(value){
   const match=value.match(/^(.*?)\s*(\([^()]*\))$/);
   if(!match)return esc(value);
-  return esc(match[1])+' <small class="yn-detail">'+esc(match[2])+'</small>';
+  return '<span class="yn-title">'+esc(match[1])+'</span><small class="yn-detail">'+esc(match[2])+'</small>';
 }
 // Разбивает текст по запятым и переносам строк
 const lines=t=>(t||"").split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);

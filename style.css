@@ -294,7 +294,11 @@ button.alt:active {
 }
 
 .yn-label {
-  display:block;
+  display:flex;
+  flex-wrap:wrap;
+  align-content:flex-end;
+  align-items:flex-end;
+  column-gap:4px;
   min-height:3em;
 }
 

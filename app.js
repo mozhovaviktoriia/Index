@@ -10,6 +10,10 @@ function setDeadlineText(id,text){
 function renderDeadline(deadline,drawn){
   eventDeadline=deadline;
   eventDrawn=!!drawn;
+  $("start").disabled=eventDrawn;
+  $("start").textContent=eventDrawn?"Заполнение закрыто":"Поехали";
+  $("edit").disabled=eventDrawn;
+  $("edit").textContent=eventDrawn?"Редактирование закрыто":"Изменить чек-лист";
   const banner=$("deadline-banner");
   if(!eventDeadline){
     banner.classList.add("hide");

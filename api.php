@@ -90,7 +90,23 @@ function check_pin(PDO $pdo, string $name, string $pin, string $hash): bool
 
 function is_drawn(PDO $pdo): bool
 {
-    return ((int)$pdo->query('SELECT COUNT(*) FROM pairs')->fetchColumn()) > 0;
+    $st = $pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ?');
+    $st->execute(['checklist_locked']);
+    return $st->fetchColumn() === '1'
+        || ((int)$pdo->query('SELECT COUNT(*) FROM pairs')->fetchColumn()) > 0;
+}
+
+function lock_checklist_state(PDO $pdo): bool
+{
+    $st = $pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ? FOR UPDATE');
+    $st->execute(['checklist_locked']);
+    $locked = $st->fetchColumn() === '1';
+    $hasPairs = ((int)$pdo->query('SELECT COUNT(*) FROM pairs')->fetchColumn()) > 0;
+    if ($hasPairs && !$locked) {
+        $pdo->prepare('UPDATE app_settings SET setting_value = ? WHERE setting_key = ?')
+            ->execute(['1', 'checklist_locked']);
+    }
+    return $locked || $hasPairs;
 }
 
 function get_deadline(PDO $pdo): ?string
@@ -170,6 +186,8 @@ try {
         setting_key VARCHAR(64) NOT NULL PRIMARY KEY,
         setting_value VARCHAR(255) NOT NULL
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+    $pdo->prepare('INSERT IGNORE INTO app_settings (setting_key, setting_value) VALUES (?, ?)')
+        ->execute(['checklist_locked', '0']);
 
     switch ($action) {
         case 'event_info':
@@ -202,19 +220,29 @@ try {
             $st = $pdo->prepare('SELECT id, pin_hash FROM participants WHERE name = ?');
             $st->execute([$name]);
             $row = $st->fetch();
-            if ($row) {
-                if (!check_pin($pdo, $name, $pin, (string)$row['pin_hash'])) {
-                    fail('Это имя уже занято. Если это ты и хочешь изменить анкету, введи то же секретное слово.', 403);
-                }
-                $pdo->prepare('UPDATE participants SET data = ? WHERE id = ?')->execute([$json, $row['id']]);
-                out(['ok' => true, 'updated' => true]);
+            if ($row && !check_pin($pdo, $name, $pin, (string)$row['pin_hash'])) {
+                fail('Это имя уже занято. Если это ты и хочешь изменить анкету, введи то же секретное слово.', 403);
             }
 
-            if (is_drawn($pdo)) {
-                fail('Жеребьёвка уже проведена, новых участников добавить нельзя. Напиши организатору.', 409);
+            $pdo->beginTransaction();
+            if (lock_checklist_state($pdo)) {
+                $pdo->rollBack();
+                fail('Жеребьёвка уже началась, чек-листы больше нельзя создавать или изменять.', 409);
+            }
+            if ($row) {
+                $check = $pdo->prepare('SELECT id FROM participants WHERE id = ?');
+                $check->execute([$row['id']]);
+                if (!$check->fetch()) {
+                    $pdo->rollBack();
+                    fail('Участник больше не найден. Обнови страницу и попробуй снова.', 404);
+                }
+                $pdo->prepare('UPDATE participants SET data = ? WHERE id = ?')->execute([$json, $row['id']]);
+                $pdo->commit();
+                out(['ok' => true, 'updated' => true]);
             }
             $pdo->prepare('INSERT INTO participants (name, pin_hash, data) VALUES (?, ?, ?)')
                 ->execute([$name, password_hash($pin, PASSWORD_DEFAULT), $json]);
+            $pdo->commit();
             out(['ok' => true, 'updated' => false]);
             break;
 
@@ -232,6 +260,9 @@ try {
             }
             if (!check_pin($pdo, $name, $pin, (string)$row['pin_hash'])) {
                 fail('Секретное слово не подходит', 403);
+            }
+            if (is_drawn($pdo)) {
+                fail('Жеребьёвка уже началась, редактирование чек-листов закрыто.', 409);
             }
             $decoded = json_decode((string)$row['data'], true);
             out(['ok' => true, 'data' => is_array($decoded) ? $decoded : new stdClass()]);
@@ -298,6 +329,7 @@ try {
             require_admin($pdo, $in);
             $id = (int)($in['id'] ?? 0);
             $pdo->beginTransaction();
+            lock_checklist_state($pdo);
             $pdo->exec('DELETE FROM pairs');
             $pdo->prepare('DELETE FROM participants WHERE id = ?')->execute([$id]);
             $pdo->commit();
@@ -306,9 +338,12 @@ try {
 
         case 'admin_draw':
             require_admin($pdo, $in);
+            $pdo->beginTransaction();
+            lock_checklist_state($pdo);
             $ids = $pdo->query('SELECT id FROM participants')->fetchAll(PDO::FETCH_COLUMN);
             $n = count($ids);
             if ($n < 3) {
+                $pdo->rollBack();
                 fail('Нужно минимум три участника');
             }
             for ($i = $n - 1; $i > 0; $i--) {
@@ -317,12 +352,13 @@ try {
                 $ids[$i] = $ids[$j];
                 $ids[$j] = $tmp;
             }
-            $pdo->beginTransaction();
             $pdo->exec('DELETE FROM pairs');
             $ins = $pdo->prepare('INSERT INTO pairs (giver_id, target_id) VALUES (?, ?)');
             for ($i = 0; $i < $n; $i++) {
                 $ins->execute([$ids[$i], $ids[($i + 1) % $n]]);
             }
+            $pdo->prepare('UPDATE app_settings SET setting_value = ? WHERE setting_key = ?')
+                ->execute(['1', 'checklist_locked']);
             $pdo->commit();
             out(['ok' => true, 'count' => $n]);
             break;

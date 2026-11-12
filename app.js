@@ -35,7 +35,7 @@ function updateDeadline(){
     timeZone:"Europe/Kyiv",day:"numeric",month:"long",year:"numeric",
     hour:"2-digit",minute:"2-digit",hourCycle:"h23"
   }).format(date);
-  setDeadlineText("deadline-date","Заполнить чек-листы до "+formatted+" (время Киева).");
+  setDeadlineText("deadline-date","Заполнить чек-листы до "+formatted+".");
   if(eventDrawn){
     setDeadlineText("deadline-countdown","Жеребьёвка уже проведена.");
     setDeadlineText("deadline-note","");

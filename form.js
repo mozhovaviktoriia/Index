@@ -11,7 +11,7 @@ function renderForm(){
   h+='<h2>Что насчёт этого?</h2><p class="hint">«Хочу» — будет приятно, «Нет» — лучше не надо, «Можно» — мне всё равно.</p>';
   h+='<div class="yn-grid">';
   YN.forEach(n=>{
-    h+='<div class="yn"><span>'+n+'</span><div class="tri"><button class="opt" data-yn="'+n+'" data-v="y">Хочу</button><button class="opt" data-yn="'+n+'" data-v="n">Нет</button><button class="opt" data-yn="'+n+'" data-v="m">Можно</button></div></div>';
+    h+='<div class="yn"><span class="yn-label">'+formatYNLabel(n)+'</span><div class="tri"><button class="opt" data-yn="'+esc(n)+'" data-v="y">Хочу</button><button class="opt" data-yn="'+esc(n)+'" data-v="n">Нет</button><button class="opt" data-yn="'+esc(n)+'" data-v="m">Можно</button></div></div>';
   });
   h+='</div>';
   GROUPS.forEach(g=>{
@@ -28,7 +28,7 @@ function renderForm(){
 function fillForm(data,name,pin){
   const d=data&&typeof data==="object"&&!Array.isArray(data)?data:{};
   const objectValue=value=>value&&typeof value==="object"&&!Array.isArray(value)?value:{};
-  me={pairs:objectValue(d.pairs),yn:objectValue(d.yn),chips:objectValue(d.chips)};
+  me={pairs:objectValue(d.pairs),yn:normalizeYN(d.yn),chips:objectValue(d.chips)};
   $("f-name").value=name;
   $("f-name").readOnly=true;
   $("f-pin").value=pin;
@@ -57,7 +57,11 @@ function on(b){
   return (me.chips[d.chip]||[]).indexOf(d.v)>-1;
 }
 
-const CONDITIONAL_GROUPS={sweet:"Сладкие наборы",scent:"Декор для дома"};
+const CONDITIONAL_GROUPS={
+  sweet:"Еда и напитки (снеки, кофе, чай)",
+  drink:"Еда и напитки (снеки, кофе, чай)",
+  scent:"Декор и уют (свечи, лампы, гирлянды)"
+};
 
 function isGroupExcluded(key){
   const choice=CONDITIONAL_GROUPS[key];

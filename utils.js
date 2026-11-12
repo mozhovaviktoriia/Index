@@ -8,6 +8,26 @@ const esc=s=>{
   d.textContent=s;
   return d.innerHTML;
 };
+function normalizeYN(values){
+  const source=values&&typeof values==="object"&&!Array.isArray(values)?values:{};
+  const normalized={};
+  YN.forEach(key=>{
+    if(["y","n","m"].includes(source[key]))normalized[key]=source[key];
+  });
+  Object.entries(YN_LEGACY).forEach(([key,legacy])=>{
+    if(normalized[key])return;
+    const oldValues=legacy.map(oldKey=>source[oldKey]).filter(value=>["y","n","m"].includes(value));
+    if(!oldValues.length)return;
+    // Conflicting old choices become neutral after their categories are merged.
+    normalized[key]=oldValues.every(value=>value===oldValues[0])?oldValues[0]:"m";
+  });
+  return normalized;
+}
+function formatYNLabel(value){
+  const match=value.match(/^(.*?)\s*(\([^()]*\))$/);
+  if(!match)return esc(value);
+  return esc(match[1])+' <small class="yn-detail">'+esc(match[2])+'</small>';
+}
 // Разбивает текст по запятым и переносам строк
 const lines=t=>(t||"").split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
 

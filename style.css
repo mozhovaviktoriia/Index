@@ -286,6 +286,17 @@ button.alt:active {
   font-weight:600;
 }
 
+.yn-label {
+  display:block;
+}
+
+.yn-detail {
+  color:var(--mute);
+  font-size:.8em;
+  font-weight:400;
+  opacity:.8;
+}
+
 .tri {
   display:grid;
   grid-template-columns:repeat(3,1fr);

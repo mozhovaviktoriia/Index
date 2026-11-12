@@ -2,8 +2,9 @@
 
 // Помощники для карточек
 const sec=(t,b,c)=>b?'<div class="card '+(c||"")+'"><h2>'+t+'</h2>'+b+'</div>':"";
-const chipsH=a=>a.length?'<div class="chips">'+a.map(c=>'<span class="chip">'+esc(c)+'</span>').join("")+'</div>':"";
-const plain=a=>a.length?'<ul>'+a.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>':"";
+const ynText=x=>YN.includes(x)?formatYNLabel(x):esc(x);
+const chipsH=a=>a.length?'<div class="chips">'+a.map(c=>'<span class="chip">'+ynText(c)+'</span>').join("")+'</div>':"";
+const plain=a=>a.length?'<ul>'+a.map(x=>'<li>'+ynText(x)+'</li>').join("")+'</ul>':"";
 
 // Рисует чек-лист подопечного
 function renderList(){
@@ -12,11 +13,11 @@ function renderList(){
     el.innerHTML='<h1>Чек-лист</h1><div class="card"><p>Сначала проведи жеребьёвку и нажми «Открыть» у любой пары.</p></div>';
     return;
   }
-  const t=target,f=t.f||{},yn=t.yn||{},ch=t.chips||{};
+  const t=target,f=t.f||{},yn=normalizeYN(t.yn),ch=t.chips||{};
   const by=v=>YN.filter(n=>yn[n]===v);
   const wish=by("y").concat(lines(f.want));
   const no=by("n").concat(lines(f.no));
-  const wl=wish.length?'<ul>'+wish.map((x,i)=>'<li><label><input type="checkbox" data-k="'+i+'"'+(ticks[i]?" checked":"")+'><span class="'+(ticks[i]?"done":"")+'">'+esc(x)+'</span></label></li>').join("")+'</ul>':"";
+  const wl=wish.length?'<ul>'+wish.map((x,i)=>'<li><label><input type="checkbox" data-k="'+i+'"'+(ticks[i]?" checked":"")+'><span class="'+(ticks[i]?"done":"")+'">'+ynText(x)+'</span></label></li>').join("")+'</ul>':"";
   let h='<h1>Ты даришь подарок: '+esc(t.name)+'</h1><p class="sub">Никому не рассказывай, кому ты даришь.</p>';
   const al=(ch.allergy||[]).filter(x=>x!=="Нет аллергий");
   const alT=f.allergy&&!/^нет\.?$/i.test(f.allergy)?"<p>"+esc(f.allergy)+"</p>":"";

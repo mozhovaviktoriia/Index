@@ -2,88 +2,13 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
+<meta name="theme-color" content="#8EA9D8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C1020" media="(prefers-color-scheme: dark)">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Тайный Санта 2026</title>
+<title>Тайный Санта</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#8EA9D8;--card:#F3F6FD;--ink:#432534;--mute:#4A3040;--line:rgba(67,37,52,.24);--on:#432534;--onink:#fff;--pink:#FF5CA8;--pinkink:#2A1020;--cat:#1B1020;--warm:#A3280A;
-box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1C1020;--card:#2A1A2F;--ink:#F6EEF7;--mute:#C9B7CE;--line:rgba(246,238,247,.24);--on:#8EA9D8;--onink:#2A1A2F;--cat:#46284E;--warm:#FF9A7A}}
-:root[data-theme="dark"]{--bg:#1C1020;--card:#2A1A2F;--ink:#F6EEF7;--mute:#C9B7CE;--line:rgba(246,238,247,.24);--on:#8EA9D8;--onink:#2A1A2F;--cat:#46284E;--warm:#FF9A7A}
-*{box-sizing:border-box}
-html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:16px/1.5 Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:32px}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30}
-main{max-width:540px;margin:0 auto;padding:12px 16px}
-h1,h2,.big{font-family:Unbounded,system-ui,sans-serif;font-weight:700}
-h1{font-size:22px;line-height:1.25;margin:8px 0 6px}
-h2{font-size:16px;line-height:1.3;margin:28px 0 6px}
-.card h2{margin-top:0}
-p{margin:6px 0}
-.sub,.hint{color:var(--mute);font-size:14px}
-.demo{background:var(--on);color:var(--onink);font-size:12px;padding:5px 12px;text-align:center}
-.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding:10px 16px 0}
-nav{display:flex;gap:4px;background:var(--card);border-radius:99px;padding:4px;max-width:540px;margin:0 auto}
-nav button{flex:1;background:none;color:var(--ink);border:0;box-shadow:none;border-radius:99px;padding:10px 4px;font-size:14px;font-weight:600}
-nav button:active{transform:none;box-shadow:none}
-nav button[aria-selected="true"]{background:var(--on);color:var(--onink)}
-.lights{height:16px;max-width:540px;margin:6px auto 0;background:radial-gradient(circle at 18px 8px,#FF5CA8 0 4px,transparent 5px),radial-gradient(circle at 54px 8px,#3DE0FF 0 4px,transparent 5px),radial-gradient(circle at 90px 8px,#FFC247 0 4px,transparent 5px),radial-gradient(circle at 126px 8px,#B8FF5C 0 4px,transparent 5px);background-size:144px 16px;background-repeat:repeat-x;filter:drop-shadow(0 0 4px rgba(255,255,255,.8))}
-label{display:block;margin:14px 0 6px;font-weight:600}
-input,textarea{width:100%;padding:12px 14px;font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:14px}
-input:focus,textarea:focus,button:focus-visible{outline:3px solid var(--pink);outline-offset:1px}
-textarea{min-height:76px;resize:vertical}
-button{font:inherit;font-weight:700;border:2px solid var(--pinkink);border-radius:99px;padding:12px 22px;cursor:pointer;background:var(--pink);color:var(--pinkink);box-shadow:0 4px 0 var(--pinkink),0 0 18px rgba(255,92,168,.45);transition:transform .14s cubic-bezier(.3,1.6,.5,1),box-shadow .14s}
-button:active{transform:translateY(4px);box-shadow:0 0 0 var(--pinkink),0 0 18px rgba(255,92,168,.45)}
-button.alt{background:transparent;color:var(--ink);border:2px solid var(--ink);box-shadow:0 3px 0 var(--ink)}
-button.alt:active{box-shadow:0 0 0 var(--ink)}
-.opt{background:var(--card);color:var(--ink);border:2px solid var(--ink);padding:9px 12px;font-weight:600;box-shadow:0 3px 0 var(--ink);border-radius:14px;transition:transform .14s cubic-bezier(.3,1.6,.5,1),box-shadow .14s}
-.opt:hover{transform:translateY(-1px);box-shadow:0 4px 0 var(--ink)}
-.opt:active{transform:translateY(3px);box-shadow:0 0 0 var(--ink)}
-.opt[aria-pressed="true"]{background:var(--on);color:var(--onink);border-color:var(--ink);font-weight:700;transform:translateY(2px);box-shadow:0 1px 0 var(--ink),0 0 16px rgba(255,92,168,.7);animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
-@keyframes pop{0%{transform:translateY(2px) scale(.88)}55%{transform:translateY(2px) scale(1.07) rotate(-1.5deg)}100%{transform:translateY(2px) scale(1)}}
-@media (prefers-reduced-motion:reduce){.opt,.opt[aria-pressed="true"],button{animation:none;transition:none}}
-.pr{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.yn{margin-top:10px;font-weight:600}
-.tri{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
-.chips .opt{border-radius:99px;padding:6px 14px}
-.chip{background:var(--bg);border:1.5px solid var(--line);border-radius:99px;padding:4px 12px;font-size:14px;color:var(--ink)}
-.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-.card{background:var(--card);border-radius:20px;padding:16px;margin-top:14px}
-.warn{border:2px solid var(--warm)}
-.link{font-size:12px;word-break:break-all;color:var(--mute);background:var(--bg);padding:8px;border-radius:10px;margin:8px 0}
-.pair{display:flex;justify-content:space-between;align-items:center;gap:10px}
-ul{list-style:none;padding:0;margin:6px 0 0}
-li{padding:6px 0;border-bottom:1px solid var(--line)}
-li:last-child{border:0}
-li label{display:flex;gap:10px;align-items:center;margin:0;font-weight:400}
-li input{width:20px;height:20px;accent-color:var(--pink)}
-.done{text-decoration:line-through;color:var(--mute)}
-button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;transform:none}
-input[type=range]{padding:0;border:0;background:none;accent-color:var(--pink);height:32px}
-body:not(.org) nav button[data-v="draw"]{display:none}
-dialog{border:2px solid var(--ink);border-radius:22px;background:var(--card);color:var(--ink);padding:20px;width:min(92vw,460px);box-shadow:0 6px 0 var(--ink),0 0 28px rgba(255,92,168,.45)}
-dialog::backdrop{background:rgba(20,10,30,.65)}
-dialog[open]{animation:pop2 .3s cubic-bezier(.3,1.6,.5,1)}
-@keyframes pop2{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
-@media (prefers-reduced-motion:reduce){dialog[open]{animation:none}}
-dialog h2{margin-top:0}
-.chip{display:inline-flex;align-items:center}
-.chip .x{padding:0;width:22px;height:22px;border-radius:50%;margin-left:8px;font-size:11px;line-height:1;box-shadow:0 2px 0 var(--pinkink)}
-.steps{list-style:none;counter-reset:s;padding:0;margin:8px 0}
-.steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;border:0;padding:6px 0}
-.steps li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;background:var(--pink);color:var(--pinkink);font-weight:700;font-size:13px;display:grid;place-items:center}
-nav button[data-v="list"]{display:none}
-.hide{display:none}
-.err{color:var(--warm);font-weight:700}
-.big{font-size:clamp(76px,26vw,120px);line-height:.95;letter-spacing:-.05em;font-weight:800;margin:6px 0 0}
-.big i{font-style:normal;color:#fff}
-.cat{display:block;width:200px;max-width:70%;margin:6px auto 0}
-.cat .b{fill:var(--cat)}
-.welcome h1{font-size:26px}
-.welcome button{width:100%;margin-top:14px}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -91,7 +16,7 @@ nav button[data-v="list"]{display:none}
 <nav role="tablist">
   <button role="tab" data-v="home" aria-selected="false">Главная</button>
   <button role="tab" data-v="form" aria-selected="true">Анкета</button>
-  <button role="tab" data-v="draw" aria-selected="false">Жеребьёвка</button>
+  <button role="tab" data-v="draw" aria-selected="false">Организатор</button>
   <button role="tab" data-v="list" aria-selected="false">Чек-лист</button>
 </nav>
 <div class="lights" aria-hidden="true"></div>
@@ -117,281 +42,29 @@ nav button[data-v="list"]{display:none}
   <input id="nick" placeholder="Например, Чебупеля" autocomplete="off">
   <button id="start">Поехали</button>
   <button class="alt" id="havecode">Узнать, для кого я Санта</button>
-  <div id="codebox" class="hide"><label for="mycode">Вставь пакет игры от организатора (если он в нескольких частях, вставь все подряд)</label><textarea id="mycode"></textarea><button id="opencode">Дальше</button><div id="codeerr"></div></div>
+  <div id="codebox" class="hide"><label for="rname">Твоё имя</label><input id="rname" autocomplete="off"><label for="rpin">Секретное слово</label><input id="rpin" autocomplete="off"><button id="reveal">Открыть мою пару</button><div id="codeerr"></div></div>
   <button class="alt" id="adm">Я организатор</button>
 </section>
 <section id="v-form" class="hide"></section>
 <section id="v-check" class="hide"></section>
 <section id="v-draw" class="hide">
-  <h1>Жеребьёвка</h1>
-  <p class="sub">Страница организатора. Вставь коды участников, проведи жеребьёвку и отправь всем один пакет игры.</p>
+  <h1>Организатор</h1>
+  <p class="sub" id="orgstate"></p>
   <div class="card"><h2 id="count"></h2><div class="chips" id="chips"></div></div>
-  <label for="codes">Коды участников (каждый с новой строки)</label><textarea id="codes"></textarea>
-  <div class="row"><button id="addcodes">Добавить участников</button><button class="alt" id="clear">Убрать всех</button></div>
-  <div id="codemsg"></div>
-  <div class="row"><button id="go">Провести жеребьёвку</button></div>
+  <div class="row"><button id="go">Провести жеребьёвку</button><button class="alt" id="refresh">Обновить список</button></div>
   <div id="pairs"></div>
 </section>
 <section id="v-list" class="hide"></section>
 <dialog id="dlg"></dialog>
 </main>
-<script>
-const PAIRS=[["Чай","Кофе"],["Шоколад","Конфеты"],["Сладкое","Солёное"],["Ваниль","Шоколад"],["Гулять","Быть дома"],["Яркие цвета","Пастельные"],["Книги","Фильмы"],["Собаки","Кошки"]];
-const YN=["Свечи","Плед","Одежда","Носки","Тапочки","Плюшевые игрушки","Декор для дома","Кружки","Косметика","Настолки","Книги","Сладкие наборы"];
-const GROUPS=[
- {k:"colors",t:"Любимые цвета",o:["Красный","Зелёный","Синий","Розовый","Чёрный","Белый","Жёлтый","Фиолетовый"]},
- {k:"hobby",t:"Хобби и увлечения",o:["Рисование","Чтение","Игры","Спорт","Музыка","Рукоделие","Готовка","Путешествия","Кино"]},
- {k:"sweet",t:"Сладости и вкусности",o:["Шоколад","Печенье","Зефир","Мармелад","Торты","Орехи","Фрукты"]},
- {k:"drink",t:"Напитки",o:["Чай","Кофе","Какао","Сок","Газировка","Лимонад"]},
- {k:"scent",t:"Ароматы",o:["Ваниль","Цитрус","Хвоя","Цветочные","Древесные","Без запаха"]},
- {k:"gift",t:"Какие подарки нравятся больше всего",o:["Сюрприз","Полезное","Милое","Съедобное","Сделано руками","Впечатления"]},
- {k:"ny",t:"Что для меня Новый год",o:["Мандарины","Ёлка","Гирлянды","Оливье","Фильмы","Прогулки","Тишина","Шумная компания"]},
- {k:"allergy",t:"Аллергии и ограничения",o:["Нет аллергий","Орехи","Цитрусовые","Лактоза","Глютен","Шоколад","Мёд","Сильные запахи","Шерсть и пух"]},
- {k:"santa",t:"Подсказки для Санты",o:["Люблю мелочи","Лучше полезное","Можно шуточное","Без одежды","Без сладкого","Что-то своими руками"]},
- 
- 
-];
-const SIZES=[["height","Рост"],["cloth","Размер одежды"],["shoe","Размер обуви"],["phone","Модель телефона"]];
-const TEXT=[["fav","Любимые фильмы, сериалы, игры, книги"],["want","Что хочется получить на Новый год"],["no","Что точно не хочется получать"],["allergy","Подробнее про аллергии, если нужно"],["extra","Ещё подсказки и идеи для Санты"]];
-const BASE="https://твой-сайт/index.html";
-const $=id=>document.getElementById(id);
-const esc=s=>{const d=document.createElement("div");d.textContent=s;return d.innerHTML;};
-const lines=t=>(t||"").split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
-const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o))));
 
-function T(name,pairs,yn,chips,f){
-  const p={},y={};
-  pairs.split("").forEach((c,i)=>{if(c!=="-")p[i]=c;});
-  yn.split("").forEach((c,i)=>{if(c!=="-")y[YN[i]]=c;});
-  return {name:name,pairs:p,yn:y,chips:chips,f:f};
-}
-let people=[
- T("Вика","00-11001","ym-nmnymnmyy",{colors:["Зелёный","Красный"],hobby:["Рисование","Чтение"],drink:["Чай"],sweet:["Мармелад"],scent:["Ваниль"],gift:["Сделано руками"],ny:["Ёлка","Фильмы"],santa:["Люблю мелочи"]},{surprise:"5",age:"22",cloth:"S",want:"Набор маркеров\nХороший скетчбук",no:"Духи",allergy:"Нет",extra:"Люблю мелочи ручной работы"}),
- T("Макс","10101010","mmmnmnmmmymn",{hobby:["Игры","Музыка"],drink:["Кофе"],gift:["Полезное"],ny:["Тишина"]},{cloth:"L",shoe:"43",want:"Настольная игра на компанию",no:"Свечи",allergy:"Нет"}),
- T("Оля","0111-010","yy-nynyymmmy",{colors:["Розовый"],sweet:["Шоколад","Зефир"],scent:["Цитрус"],gift:["Милое","Съедобное"],ny:["Мандарины","Гирлянды"],allergy:["Орехи","Мёд"],santa:["Без сладкого"]},{want:"Тёплый плед",no:"Шуточные подарки",surprise:"4"}),
- T("Денис","11010-01","mm-ymmmnmymy",{hobby:["Игры","Спорт"],drink:["Кофе","Какао"],gift:["Полезное"]},{phone:"смартфон 6.1″",want:"Наушники",no:"Галстуки",allergy:"Нет"}),
- T("Аня","00011110","mynmmymmyymm",{colors:["Белый","Зелёный"],hobby:["Путешествия","Кино"],drink:["Чай"],scent:["Хвоя"],gift:["Впечатления"],ny:["Прогулки"]},{want:"Комнатное растение",no:"Ароматизаторы",allergy:"Нет"})
-];
-let me={pairs:{},yn:{},chips:{}}, target=null, ticks={};
-
-function field(id,l){return '<label for="f-'+id+'">'+l+'</label><input id="f-'+id+'" autocomplete="off">';}
-function renderForm(){
-  let h='<h1>Анкета для Тайного Санты</h1><p class="sub">Нажимай на кнопки и пиши своё. Обязательно только имя.</p>'+field("name","Имя или никнейм")+field("pin","Секретное слово: по нему ты откроешь свою пару")+field("age","Возраст (по желанию)");
-  
-  
-  h+='<h2>Что насчёт этого?</h2><p class="hint">«Хочу» — будет приятно, «Нет» — лучше не надо, «Можно» — мне всё равно.</p>';
-  YN.forEach(n=>{h+='<div class="yn"><span>'+n+'</span><div class="tri"><button class="opt" data-yn="'+n+'" data-v="y">Хочу</button><button class="opt" data-yn="'+n+'" data-v="n">Нет</button><button class="opt" data-yn="'+n+'" data-v="m">Можно</button></div></div>';});
-  GROUPS.forEach(g=>{h+='<h2>'+g.t+'</h2><div class="chips">'+g.o.map(o=>'<button class="opt" data-chip="'+g.k+'" data-v="'+o+'">'+o+'</button>').join("")+'</div><input id="c-'+g.k+'" placeholder="Своё: через запятую">';});
-  h+='<h2>Любишь сюрпризы?</h2><input id="f-surprise" type="range" min="1" max="5" value="3"><div class="pair hint"><span>Спроси меня</span><span>Удиви</span></div>';
-  h+='<h2>Немного о себе</h2>'+SIZES.map(s=>field(s[0],s[1])).join("");
-  h+='<h2>Своими словами</h2>'+TEXT.map(t=>'<label for="f-'+t[0]+'">'+t[1]+'</label><textarea id="f-'+t[0]+'"></textarea>').join("");
-  h+='<div class="row"><button id="make">Проверить анкету</button></div><div id="made"></div>';
-  $("v-form").innerHTML=h;
-}
-function on(b){const d=b.dataset;if(d.pair!=null)return me.pairs[d.pair]===d.v;if(d.yn!=null)return me.yn[d.yn]===d.v;return (me.chips[d.chip]||[]).indexOf(d.v)>-1;}
-function sync(){document.querySelectorAll("#v-form .opt").forEach(b=>b.setAttribute("aria-pressed",on(b)));}
-function toggle(b){
-  const d=b.dataset;
-  if(d.pair!=null){if(me.pairs[d.pair]===d.v)delete me.pairs[d.pair];else me.pairs[d.pair]=d.v;}
-  else if(d.yn!=null){if(me.yn[d.yn]===d.v)delete me.yn[d.yn];else me.yn[d.yn]=d.v;}
-  else{const a=me.chips[d.chip]=me.chips[d.chip]||[],i=a.indexOf(d.v);if(i>-1)a.splice(i,1);else a.push(d.v);}
-  sync();
-}
-function burst(b){
-  if(matchMedia("(prefers-reduced-motion:reduce)").matches)return;
-  const r=b.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,cols=["#FF5CA8","#3DE0FF","#FFC247","#B8FF5C"];
-  for(let i=0;i<9;i++){
-    const p=document.createElement("i"),dx=(Math.random()-.5)*120,dy=-30-Math.random()*40;
-    p.style.cssText="position:fixed;left:"+cx+"px;top:"+cy+"px;width:7px;height:7px;border-radius:50%;pointer-events:none;z-index:50;background:"+cols[i%4];
-    document.body.appendChild(p);
-    p.animate([{transform:"translate(0,0)",opacity:1},{transform:"translate("+dx*.6+"px,"+dy+"px)",opacity:1,offset:.4},{transform:"translate("+dx+"px,"+(dy+90)+"px) scale(.3)",opacity:0}],{duration:650+Math.random()*250,easing:"ease-out"}).onfinish=()=>p.remove();
-  }
-}
-function openCheck(){
-  const d=collect();
-  if(!d.name){$("made").innerHTML='<p class="err">Напиши своё имя</p>';return;}
-  const keep=target;target=d;renderList();target=keep;
-  const body=$("v-list").innerHTML.replace(/<h1>.*?<\/h1><p class="sub">.*?<\/p>/,"");
-  const n=Object.keys(d.yn).length+Object.values(d.chips).reduce((s,a)=>s+a.length,0);
-  const al=(d.chips.allergy||[]).filter(x=>x!=="Нет аллергий").length||(d.f.allergy&&!/^нет\.?$/i.test(d.f.allergy));
-  let h='<h1>Проверь перед отправкой</h1><p class="sub">Так Санта увидит твой чек-лист, <b>'+esc(d.name)+'</b>. Заполнено пунктов: '+n+'.</p>'+body;
-  h+='<div class="card"><h2>Ещё раз по важному</h2>';
-  if(al)h+='<p>Аллергии и ограничения отмечены. Ничего не забыто?</p>';
-  else h+='<p>Про аллергии ничего не отмечено. Точно нет аллергий, а ещё продуктов, которые ты не ешь?</p><div class="pr"><button class="opt" id="al-ok" aria-pressed="false">Да, ничего нет</button><button class="opt" id="al-back">Добавлю</button></div>';
-  h+='<label style="display:flex;gap:10px;align-items:center;margin:14px 0 0"><input id="sure" type="checkbox" style="width:22px;height:22px;accent-color:var(--pink)">Всё выше верно</label>';
-  h+='<div class="row"><button id="send" disabled>Сделать ссылку</button><button class="alt" id="fix">Вернуться и поправить</button></div></div>';
-  $("v-check").innerHTML=h;
-  let okAl=!!al;
-  const upd=()=>{$("send").disabled=!($("sure").checked&&okAl);};
-  if($("al-ok")){
-    $("al-ok").onclick=()=>{okAl=true;$("al-ok").setAttribute("aria-pressed","true");upd();};
-    $("al-back").onclick=()=>{show("form");setTimeout(()=>{const g=document.querySelector('[data-chip="allergy"]');if(g)g.scrollIntoView({block:"center"});},60);};
-  }
-  $("sure").onchange=upd;
-  $("fix").onclick=()=>show("form");
-  $("send").onclick=()=>{makeLink();const card=$("made").firstElementChild;$("v-check").innerHTML='<h1>Осталось отправить ссылку</h1>';if(card)$("v-check").appendChild(card);window.scrollTo(0,0);};
-  show("check");
-}
-function collect(){
-  const f={};["age"].concat(SIZES.map(s=>s[0]),TEXT.map(t=>t[0])).forEach(k=>{const v=$("f-"+k).value.trim();if(v)f[k]=v;});
-  const chips={};GROUPS.forEach(g=>{const a=(me.chips[g.k]||[]).concat(lines($("c-"+g.k).value));if(a.length)chips[g.k]=a;});
-  f.surprise=$("f-surprise").value;
-  return {name:$("f-name").value.trim(),pin:hash($("f-name").value.trim()+"|"+$("f-pin").value.trim().toLowerCase()),pairs:me.pairs,yn:me.yn,chips:chips,f:f};
-}
-function show(v){
-  ["form","check","draw","list"].forEach(k=>$("v-"+k).classList.toggle("hide",k!==v));
-  document.querySelectorAll("nav button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===(v==="check"?"form":v)));
-  if(v==="draw")renderPeople();
-  if(v==="list")renderList();
-  window.scrollTo(0,0);
-}
-document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>b.dataset.v==="home"?goHome():show(b.dataset.v));
-renderForm();sync();
-$("v-form").addEventListener("click",e=>{
-  const b=e.target.closest(".opt");if(b){toggle(b);if(on(b))burst(b);return;}
-  if(e.target.id==="make"){if(!$("f-pin").value.trim()){$("made").innerHTML='<p class="err">Придумай секретное слово</p>';return;}openCheck();}
-});
-function makeLink(){
-  const d=collect();
-  if(!d.name){$("made").innerHTML='<p class="err">Напиши своё имя</p>';return;}
-  people=people.filter(p=>p.name!==d.name);const link=enc(d);
-  $("made").innerHTML='<div class="card"><h2>Готово</h2><p>Скопируй код и отправь его организатору в личные сообщения. Запомни секретное слово. Когда организатор пришлёт пакет игры, нажми «Узнать, для кого я Санта».</p><div class="link">'+esc(link)+'</div><div class="row"><button id="copy">Скопировать код</button><button class="alt" id="mine">Как выглядит мой чек-лист</button><button class="alt" id="reveal2">Узнать, для кого я Санта</button></div></div>';
-  $("copy").onclick=()=>{try{navigator.clipboard.writeText(link).then(()=>{$("copy").textContent="Скопировано";});}catch(e){$("copy").textContent="Выдели код вручную";}};
-  $("mine").onclick=()=>{target=d;ticks={};show("list");};showDone(link);
-}
-function renderPeople(){
-  $("count").textContent="Участников: "+people.length;
-  $("chips").innerHTML=people.map((p,i)=>'<span class="chip">'+esc(p.name)+'<button class="x" data-r="'+i+'" aria-label="Удалить: '+esc(p.name)+'">✕</button></span>').join("");
-}
-function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-$("go").onclick=()=>{
-  if(people.length<3){$("pairs").innerHTML='<p class="err">Нужно минимум три участника</p>';return;}
-  const o=shuffle(people);
-  let h='<h2>Коды для участников</h2><p class="sub">Отправь каждому его код лично. Кто кому дарит, здесь не видно.</p>';
-  const m={};o.forEach((g,i)=>{m[g.name]=o[(i+1)%o.length];});people.forEach((g,i)=>{h+='<div class="card pair"><div>Для <b>'+esc(g.name)+'</b><div class="sub">код чек-листа подопечного</div></div><div class="row" style="margin:0"><button data-c="'+i+'">Скопировать код</button><button class="alt" data-i="'+i+'">Подсмотреть</button></div></div>';});
-  $("pairs").innerHTML=h;
-  $("pairs").querySelectorAll("button[data-c]").forEach(b=>b.onclick=()=>{try{navigator.clipboard.writeText(enc(m[people[+b.dataset.c].name])).then(()=>{b.textContent="Скопировано";});}catch(e){b.textContent="Не вышло";}});
-  $("pairs").querySelectorAll("button[data-i]").forEach(b=>b.onclick=()=>{target=m[people[+b.dataset.i].name];ticks={};show("list");});
-};
-const sec=(t,b,c)=>b?'<div class="card '+(c||"")+'"><h2>'+t+'</h2>'+b+'</div>':"";
-const chipsH=a=>a.length?'<div class="chips">'+a.map(c=>'<span class="chip">'+esc(c)+'</span>').join("")+'</div>':"";
-const plain=a=>a.length?'<ul>'+a.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul>':"";
-function renderList(){
-  const el=$("v-list");
-  if(!target){el.innerHTML='<h1>Чек-лист</h1><div class="card"><p>Сначала проведи жеребьёвку и нажми «Открыть» у любой пары.</p></div>';return;}
-  const t=target,f=t.f||{},yn=t.yn||{},ch=t.chips||{};
-  const by=v=>YN.filter(n=>yn[n]===v);
-  const wish=by("y").concat(lines(f.want));
-  const no=by("n").concat(lines(f.no));
-  const picks=PAIRS.map((p,i)=>t.pairs&&t.pairs[i]!=null?p[t.pairs[i]]:null).filter(Boolean);
-  const wl=wish.length?'<ul>'+wish.map((x,i)=>'<li><label><input type="checkbox" data-k="'+i+'"'+(ticks[i]?" checked":"")+'><span class="'+(ticks[i]?"done":"")+'">'+esc(x)+'</span></label></li>').join("")+'</ul>':"";
-  let h='<h1>Ты даришь подарок: '+esc(t.name)+'</h1><p class="sub">Никому не рассказывай, кому ты даришь.</p>';
-  const al=(ch.allergy||[]).filter(x=>x!=="Нет аллергий");
-  const alT=f.allergy&&!/^нет\.?$/i.test(f.allergy)?"<p>"+esc(f.allergy)+"</p>":"";
-  h+=sec("Важно: аллергии и ограничения",chipsH(al)+alT,"warn");
-  h+=sec("Хочу",wl+(wl?'<div class="hint">Отмечай идеи, которые уже рассмотрены</div>':""));
-  h+=sec("Лучше не надо",plain(no));
-  h+=sec("Можно",chipsH(by("m")));
-  
-  GROUPS.filter(g=>g.k!=="allergy").forEach(g=>{h+=sec(g.t,chipsH(ch[g.k]||[]));});
-  h+=sec("Любимые фильмы, сериалы, игры, книги",f.fav?"<p>"+esc(f.fav)+"</p>":"");
-  h+=sec("Подсказки для Санты",f.extra?"<p>"+esc(f.extra)+"</p>":"");
-  const sz=SIZES.concat([["age","Возраст"]]).filter(s=>f[s[0]]).map(s=>s[1]+": "+f[s[0]]);
-  if(f.surprise)sz.push("Сюрпризы: "+f.surprise+" из 5 (1 — спроси меня, 5 — удиви)");
-  h+=sec("О себе",plain(sz));
-  el.innerHTML=h;
-  el.querySelectorAll("input[data-k]").forEach(c=>c.onchange=()=>{ticks[c.dataset.k]=c.checked;c.nextElementSibling.className=c.checked?"done":"";});
-}
-
-const dec=c=>JSON.parse(decodeURIComponent(escape(atob(c))));
-$("addcodes").onclick=()=>{
-  const ls=$("codes").value.split(/\n+/).map(s=>s.replace(/\s+/g,"")).filter(Boolean);
-  let bad=0;
-  ls.forEach(c=>{try{const d=dec(c);if(!d.name)throw 0;people=people.filter(p=>p.name!==d.name);people.push(d);}catch(e){bad++;}});
-  $("codes").value="";renderPeople();
-  $("codemsg").innerHTML=bad?'<p class="err">Не получилось прочитать кодов: '+bad+'</p>':"";
-};
-$("clear").onclick=()=>{people=[];$("pairs").innerHTML="";$("codemsg").innerHTML="";renderPeople();};
-$("havecode").onclick=()=>{const hid=$("codebox").classList.toggle("hide");if(!hid)modal("Как узнать свою пару",'<ol class="steps"><li>Админ присылает пакет игры в чат. Скопируй его целиком.</li><li>Если частей несколько, вставь все подряд.</li><li>Выбери своё имя и введи секретное слово.</li></ol><p class="sub">Пакета ещё нет? Тогда админ пока не провёл жеребьёвку. Загляни позже.</p>');};
-$("opencode").onclick=()=>{
-  try{const d=dec($("mycode").value.replace(/\s+/g,""));if(!d.name)throw 0;target=d;ticks={};$("v-welcome").classList.add("hide");show("list");}
-  catch(e){$("codeerr").innerHTML='<p class="err">Код не читается. Скопируй его целиком, от первой до последней буквы.</p>';}
-};
-const hash=s=>{let h=5381;for(const c of s)h=((h<<5)+h+c.codePointAt(0))>>>0;return h.toString(36);};
-const b64u=u=>{let s="";for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");};
-const ub64=t=>{t=t.replace(/-/g,"+").replace(/_/g,"/");while(t.length%4)t+="=";const s=atob(t),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;};
-async function pack(str){const cs=new CompressionStream("deflate-raw"),w=cs.writable.getWriter();w.write(new TextEncoder().encode(str));w.close();return b64u(new Uint8Array(await new Response(cs.readable).arrayBuffer()));}
-async function unpack(t){const ds=new DecompressionStream("deflate-raw"),w=ds.writable.getWriter();w.write(ub64(t));w.close();return new TextDecoder().decode(await new Response(ds.readable).arrayBuffer());}
-const copyText=(t,b)=>{try{navigator.clipboard.writeText(t).then(()=>{b.textContent="Скопировано";});}catch(e){b.textContent="Не вышло";}};
-$("go").onclick=async()=>{
-  const out=$("pairs");
-  if(people.length<3){out.innerHTML='<p class="err">Нужно минимум три участника</p>';return;}
-  try{
-    const o=shuffle(people).map(p=>Object.assign({},p,{pin:p.pin||hash(p.name+"|santa")}));
-    const str=await pack(JSON.stringify({v:1,o:o})),n=Math.ceil(str.length/3500),parts=[];
-    for(let i=0;i<n;i++){const s=str.slice(i*3500,(i+1)*3500);parts.push(n>1?(i+1)+"/"+n+":"+s:s);}
-    let h='<h2>Пакет игры</h2><p class="sub">Отправь его всем участникам, можно в общий чат (части по порядку). Кто кому дарит, здесь не видно: каждый узнаёт это сам по кнопке на главной странице.</p>';
-    parts.forEach((p,i)=>{h+='<div class="card"><b>'+(n>1?"Часть "+(i+1)+" из "+n:"Пакет")+'</b><div class="link">'+esc(p.slice(0,48))+'…</div><button data-p="'+i+'">Скопировать</button></div>';});
-    out.innerHTML=h;modal("Пакет готов!",'<ol class="steps"><li>Скопируй пакет (если частей несколько, каждую отдельно).</li><li>Отправь всем участникам в общий чат.</li><li>Скажи им нажать «Узнать, для кого я Санта» и вставить пакет.</li></ol>');
-    out.querySelectorAll("button[data-p]").forEach(b=>b.onclick=()=>copyText(parts[+b.dataset.p],b));
-  }catch(e){out.innerHTML='<p class="err">Не получилось собрать пакет. Открой страницу в Chrome или Safari.</p>';}
-};
-$("opencode").onclick=async()=>{
-  try{
-    const raw=$("mycode").value.replace(/\d+\/\d+:/g,"").replace(/\s+/g,"");
-    const g=JSON.parse(await unpack(raw));
-    if(!g.o||!g.o.length)throw 0;
-    $("codebox").innerHTML='<label>Кто ты?</label><div class="chips" id="whol"></div><label for="pin2">Секретное слово</label><input id="pin2" autocomplete="off"><button id="reveal" disabled>Открыть мою пару</button><div id="codeerr"></div>';
-    let who=-1;
-    g.o.forEach((p,i)=>{const b=document.createElement("button");b.className="opt";b.textContent=p.name;b.setAttribute("aria-pressed","false");b.onclick=()=>{who=i;[...$("whol").children].forEach((c,j)=>c.setAttribute("aria-pressed",j===i));$("reveal").disabled=false;};$("whol").appendChild(b);});
-    $("reveal").onclick=()=>{
-      const p=g.o[who];
-      if(hash(p.name+"|"+$("pin2").value.trim().toLowerCase())!==p.pin){$("codeerr").innerHTML='<p class="err">Секретное слово не подходит</p>';return;}
-      burst($("reveal"));
-      target=g.o[(who+1)%g.o.length];ticks={};$("v-welcome").classList.add("hide");$("top").classList.remove("hide");show("list");
-    };
-  }catch(e){$("codeerr").innerHTML='<p class="err">Пакет не читается. Скопируй все части целиком.</p>';}
-};
-$("adm").onclick=()=>{document.body.classList.add("org");$("v-welcome").classList.add("hide");$("top").classList.remove("hide");show("draw");};
-document.addEventListener("click",e=>{
-  if(e.target.id==="reveal2"){
-    ["form","check","draw","list"].forEach(k=>$("v-"+k).classList.add("hide"));
-    $("top").classList.add("hide");$("v-welcome").classList.remove("hide");$("codebox").classList.remove("hide");window.scrollTo(0,0);
-  }
-});
-function modal(title,body){
-  const d=$("dlg");
-  d.innerHTML='<h2>'+title+'</h2>'+body+'<div class="row"><button id="dlgok">Понятно</button></div>';
-  $("dlgok").onclick=()=>d.close();
-  if(!d.open)d.showModal();
-}
-function showDone(code){
-  modal("Анкета готова!",'<ol class="steps"><li>Скопируй код ниже.</li><li>Отправь его админу в личные сообщения.</li><li>Админ внесёт тебя в жеребьёвку и пришлёт пакет игры.</li><li>Открой эту страницу снова и нажми «Узнать, для кого я Санта».</li></ol><div class="link">'+esc(code.slice(0,60))+'…</div><div class="row"><button id="dlgcopy">Скопировать код</button></div>');
-  $("dlgcopy").onclick=()=>copyText(code,$("dlgcopy"));
-}
-$("chips").addEventListener("click",e=>{
-  const b=e.target.closest("button[data-r]");if(!b)return;
-  const p=people[+b.dataset.r];if(!p)return;
-  const d=$("dlg");
-  d.innerHTML='<h2>Удалить участника?</h2><p>'+esc(p.name)+' пропадёт из жеребьёвки. Пусть заполнит анкету заново и пришлёт новый код.</p><p class="sub">Если жеребьёвка уже была, проведи её заново и отправь всем новый пакет.</p><div class="row"><button id="rmok">Удалить</button><button class="alt" id="rmno">Отмена</button></div>';
-  $("rmno").onclick=()=>d.close();
-  $("rmok").onclick=()=>{people=people.filter(x=>x!==p);$("pairs").innerHTML="";d.close();renderPeople();};
-  d.showModal();
-});
-function goHome(){
-  ["form","check","draw","list"].forEach(k=>$("v-"+k).classList.add("hide"));
-  $("top").classList.add("hide");document.body.classList.remove("org");
-  $("v-welcome").classList.remove("hide");window.scrollTo(0,0);
-}
-people=[];
-$("start").onclick=()=>{
-  const nick=$("nick").value.trim();
-  $("v-welcome").classList.add("hide");$("top").classList.remove("hide");
-  if(nick)$("f-name").value=nick;
-  document.querySelector("#v-form h1").textContent=nick?"Итак, "+nick+", выкладывай желания":"Выкладывай свои желания";
-  show("form");
-};
-$("nick").addEventListener("keydown",e=>{if(e.key==="Enter")$("start").click();});
-</script>
+<script src="options.js"></script>
+<script src="state.js"></script>
+<script src="utils.js"></script>
+<script src="api.js"></script>
+<script src="form.js"></script>
+<script src="checklist.js"></script>
+<script src="organizer.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

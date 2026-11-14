@@ -43,8 +43,15 @@ function fillForm(data,name,pin){
   GROUPS.forEach(g=>{
     const selected=new Set(g.o);
     const values=Array.isArray(me.chips[g.k])?me.chips[g.k]:[];
-    me.chips[g.k]=values;
-    $("c-"+g.k).value=values.filter(v=>typeof v==="string"&&!selected.has(v)).join(", ");
+    const options=new Set();
+    const custom=new Set();
+    values.forEach(v=>{
+      if(typeof v!=="string")return;
+      if(selected.has(v))options.add(v);
+      else if(v.trim())custom.add(v.trim());
+    });
+    me.chips[g.k]=Array.from(options);
+    $("c-"+g.k).value=Array.from(custom).join(", ");
   });
   sync();
 }
@@ -182,7 +189,7 @@ function collect(){
   const chips={};
   GROUPS.forEach(g=>{
     if(isGroupExcluded(g.k))return;
-    const a=(me.chips[g.k]||[]).concat(lines($("c-"+g.k).value));
+    const a=Array.from(new Set((me.chips[g.k]||[]).concat(lines($("c-"+g.k).value))));
     if(a.length)chips[g.k]=a;
   });
   f.surprise=$("f-surprise").value;

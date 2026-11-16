@@ -3,7 +3,10 @@
 // Помощники для карточек
 const sec=(t,b,c)=>b?'<div class="card '+(c||"")+'"><h2>'+t+'</h2>'+b+'</div>':"";
 const ynText=x=>YN.includes(x)?formatYNLabel(x):esc(x);
-const chipsH=a=>a.length?'<div class="chips">'+a.map(c=>'<span class="chip">'+ynText(c)+'</span>').join("")+'</div>':"";
+const chipsH=a=>{
+  const unique=Array.from(new Set(a));
+  return unique.length?'<div class="chips">'+unique.map(c=>'<span class="chip">'+ynText(c)+'</span>').join("")+'</div>':"";
+};
 const plain=a=>a.length?'<ul>'+a.map(x=>'<li>'+ynText(x)+'</li>').join("")+'</ul>':"";
 
 // Рисует чек-лист подопечного

@@ -132,11 +132,15 @@ function chat_messages(PDO $pdo, array $pair, int $participantId): array
         ORDER BY id DESC
         LIMIT 100');
     $st->execute([$pair['giver_id'], $pair['target_id']]);
-    return array_map(static function (array $message) use ($participantId): array {
+    $kyiv = new DateTimeZone('Europe/Kyiv');
+    return array_map(static function (array $message) use ($participantId, $kyiv): array {
+        $sentAt = (new DateTimeImmutable('@' . (int)$message['sent_at']))
+            ->setTimezone($kyiv)
+            ->format('d.m, H:i');
         return [
             'fromYou' => (int)$message['sender_id'] === $participantId,
             'text' => $message['message'],
-            'sentAt' => (int)$message['sent_at'],
+            'sentAt' => $sentAt,
         ];
     }, array_reverse($st->fetchAll()));
 }

@@ -107,10 +107,16 @@ function require_participant(PDO $pdo, array $in): array
     return $participant;
 }
 
-function require_chat_pair(PDO $pdo, int $participantId): array
+function require_chat_pair(PDO $pdo, int $participantId, string $direction): array
 {
-    $st = $pdo->prepare('SELECT giver_id, target_id FROM pairs WHERE giver_id = ? OR target_id = ?');
-    $st->execute([$participantId, $participantId]);
+    if ($direction === 'giver') {
+        $st = $pdo->prepare('SELECT giver_id, target_id FROM pairs WHERE giver_id = ?');
+    } elseif ($direction === 'recipient') {
+        $st = $pdo->prepare('SELECT giver_id, target_id FROM pairs WHERE target_id = ?');
+    } else {
+        fail('Не удалось определить собеседника чата');
+    }
+    $st->execute([$participantId]);
     $pair = $st->fetch();
     if (!$pair) {
         fail('Не удалось найти твою пару. Возможно, жеребьёвка была сброшена.', 409);
@@ -359,10 +365,11 @@ try {
             if (!is_drawn($pdo)) {
                 fail('Чат станет доступен после жеребьёвки.', 409);
             }
-            $pair = require_chat_pair($pdo, (int)$participant['id']);
+            $direction = (string)($in['direction'] ?? 'giver');
+            $pair = require_chat_pair($pdo, (int)$participant['id'], $direction);
             out([
                 'ok' => true,
-                'role' => (int)$pair['giver_id'] === (int)$participant['id'] ? 'giver' : 'recipient',
+                'role' => $direction,
                 'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
             ]);
             break;
@@ -376,12 +383,13 @@ try {
             if ($message === '' || str_len($message) > 1000) {
                 fail('Сообщение должно содержать от 1 до 1000 символов');
             }
-            $pair = require_chat_pair($pdo, (int)$participant['id']);
+            $direction = (string)($in['direction'] ?? 'giver');
+            $pair = require_chat_pair($pdo, (int)$participant['id'], $direction);
             $pdo->prepare('INSERT INTO chat_messages (giver_id, target_id, sender_id, message) VALUES (?, ?, ?, ?)')
                 ->execute([$pair['giver_id'], $pair['target_id'], $participant['id'], $message]);
             out([
                 'ok' => true,
-                'role' => (int)$pair['giver_id'] === (int)$participant['id'] ? 'giver' : 'recipient',
+                'role' => $direction,
                 'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
             ]);
             break;

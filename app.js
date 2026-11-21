@@ -71,7 +71,7 @@ async function loadEventInfo(){
 
 function showOrganizerNotice(notice,auth,onComplete){
   const d=$("dlg");
-  d.innerHTML='<h2>Сообщение от организатора</h2><p class="organizer-notice-message">'+esc(notice.message)+'</p><img class="organizer-notice-cat" src="assets/organizer-warning-cat.png" alt="Кот в шапке Санты строго смотрит"><div class="row"><button id="organizer-notice-ok">Понятно</button></div>';
+  d.innerHTML='<h2>Письмо от князя</h2><p class="organizer-notice-message">'+esc(notice.message)+'</p><img class="organizer-notice-cat" src="assets/organizer-warning-cat.png" alt="Кот в шапке Санты строго смотрит"><div class="row"><button id="organizer-notice-ok">Понятно</button></div>';
   $("organizer-notice-ok").onclick=()=>d.close();
   d.addEventListener("close",async()=>{
     const res=await api("notice_ack",{name:auth.name,pin:auth.pin,id:notice.id});

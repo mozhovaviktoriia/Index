@@ -142,8 +142,7 @@ $("v-form").addEventListener("click",e=>{
 });
 // Участник узнаёт свою пару: имя + секретное слово
 $("havecode").onclick=()=>{
-  const hid=$("codebox").classList.toggle("hide");
-  if(!hid)modal("Как узнать свою пару",'<ol class="steps"><li>Введи имя так, как писал(а) в анкете.</li><li>Введи своё секретное слово.</li><li>Если жеребьёвки ещё не было, загляни позже.</li></ol>');
+  $("codebox").classList.toggle("hide");
 };
 // Участник загружает свою анкету после проверки секретного слова
 $("edit").onclick=()=>{

@@ -88,6 +88,53 @@ function check_pin(PDO $pdo, string $name, string $pin, string $hash): bool
     return true;
 }
 
+function require_participant(PDO $pdo, array $in): array
+{
+    $name = clean_name((string)($in['name'] ?? ''));
+    $pin = clean_pin((string)($in['pin'] ?? ''));
+    if ($name === '' || $pin === '') {
+        fail('Введи имя и секретное слово');
+    }
+    $st = $pdo->prepare('SELECT id, pin_hash FROM participants WHERE name = ?');
+    $st->execute([$name]);
+    $participant = $st->fetch();
+    if (!$participant) {
+        fail('Такого имени нет в списке. Проверь, как оно написано в анкете.', 404);
+    }
+    if (!check_pin($pdo, $name, $pin, (string)$participant['pin_hash'])) {
+        fail('Секретное слово не подходит', 403);
+    }
+    return $participant;
+}
+
+function require_chat_pair(PDO $pdo, int $participantId): array
+{
+    $st = $pdo->prepare('SELECT giver_id, target_id FROM pairs WHERE giver_id = ? OR target_id = ?');
+    $st->execute([$participantId, $participantId]);
+    $pair = $st->fetch();
+    if (!$pair) {
+        fail('Не удалось найти твою пару. Возможно, жеребьёвка была сброшена.', 409);
+    }
+    return $pair;
+}
+
+function chat_messages(PDO $pdo, array $pair, int $participantId): array
+{
+    $st = $pdo->prepare("SELECT sender_id, message, DATE_FORMAT(created_at, '%d.%m %H:%i') AS sent_at
+        FROM chat_messages
+        WHERE giver_id = ? AND target_id = ?
+        ORDER BY id DESC
+        LIMIT 100");
+    $st->execute([$pair['giver_id'], $pair['target_id']]);
+    return array_map(static function (array $message) use ($participantId): array {
+        return [
+            'fromYou' => (int)$message['sender_id'] === $participantId,
+            'text' => $message['message'],
+            'sentAt' => $message['sent_at'],
+        ];
+    }, array_reverse($st->fetchAll()));
+}
+
 function is_drawn(PDO $pdo): bool
 {
     $st = $pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ?');
@@ -174,6 +221,16 @@ try {
     $pdo->exec('CREATE TABLE IF NOT EXISTS pairs (
         giver_id INT NOT NULL PRIMARY KEY,
         target_id INT NOT NULL
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS chat_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        giver_id INT NOT NULL,
+        target_id INT NOT NULL,
+        sender_id INT NOT NULL,
+        message TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        KEY ix_chat_pair (giver_id, target_id, id)
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
 
     $pdo->exec('CREATE TABLE IF NOT EXISTS throttle (
@@ -297,6 +354,38 @@ try {
             ]);
             break;
 
+        case 'chat_load':
+            $participant = require_participant($pdo, $in);
+            if (!is_drawn($pdo)) {
+                fail('Чат станет доступен после жеребьёвки.', 409);
+            }
+            $pair = require_chat_pair($pdo, (int)$participant['id']);
+            out([
+                'ok' => true,
+                'role' => (int)$pair['giver_id'] === (int)$participant['id'] ? 'giver' : 'recipient',
+                'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
+            ]);
+            break;
+
+        case 'chat_send':
+            $participant = require_participant($pdo, $in);
+            if (!is_drawn($pdo)) {
+                fail('Чат станет доступен после жеребьёвки.', 409);
+            }
+            $message = trim((string)($in['message'] ?? ''));
+            if ($message === '' || str_len($message) > 1000) {
+                fail('Сообщение должно содержать от 1 до 1000 символов');
+            }
+            $pair = require_chat_pair($pdo, (int)$participant['id']);
+            $pdo->prepare('INSERT INTO chat_messages (giver_id, target_id, sender_id, message) VALUES (?, ?, ?, ?)')
+                ->execute([$pair['giver_id'], $pair['target_id'], $participant['id'], $message]);
+            out([
+                'ok' => true,
+                'role' => (int)$pair['giver_id'] === (int)$participant['id'] ? 'giver' : 'recipient',
+                'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
+            ]);
+            break;
+
         case 'admin_list':
             require_admin($pdo, $in);
             $rows = $pdo->query('SELECT id, name FROM participants ORDER BY id')->fetchAll();
@@ -330,6 +419,7 @@ try {
             $id = (int)($in['id'] ?? 0);
             $pdo->beginTransaction();
             lock_checklist_state($pdo);
+            $pdo->exec('DELETE FROM chat_messages');
             $pdo->exec('DELETE FROM pairs');
             $pdo->prepare('DELETE FROM participants WHERE id = ?')->execute([$id]);
             $pdo->commit();
@@ -352,6 +442,7 @@ try {
                 $ids[$i] = $ids[$j];
                 $ids[$j] = $tmp;
             }
+            $pdo->exec('DELETE FROM chat_messages');
             $pdo->exec('DELETE FROM pairs');
             $ins = $pdo->prepare('INSERT INTO pairs (giver_id, target_id) VALUES (?, ?)');
             for ($i = 0; $i < $n; $i++) {
@@ -370,6 +461,7 @@ try {
                 $pdo->rollBack();
                 fail('Жеребьёвка ещё не проводилась.', 409);
             }
+            $pdo->exec('DELETE FROM chat_messages');
             $pdo->exec('DELETE FROM pairs');
             $pdo->prepare('UPDATE app_settings SET setting_value = ? WHERE setting_key = ?')
                 ->execute(['0', 'checklist_locked']);

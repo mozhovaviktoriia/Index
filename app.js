@@ -83,6 +83,7 @@ function goHome(){
   ["form","check","draw","list"].forEach(k=>$("v-"+k).classList.add("hide"));
   $("top").classList.add("hide");
   document.body.classList.remove("org");
+  chatAuth=null;
   $("v-welcome").classList.remove("hide");
   window.scrollTo(0,0);
 }
@@ -184,6 +185,7 @@ $("reveal").onclick=async()=>{
   burst(b);
   target=Object.assign({name:res.target.name},res.target.data);
   ticks={};
+  chatAuth={name:name,pin:pin,role:""};
   $("v-welcome").classList.add("hide");
   $("top").classList.remove("hide");
   show("list");

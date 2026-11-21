@@ -429,6 +429,56 @@ button.alt:active {
   border:2px solid var(--warm);
 }
 
+.chat-messages {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  max-height:320px;
+  overflow:auto;
+  margin:12px 0;
+}
+
+.chat-message {
+  max-width:88%;
+  padding:9px 12px;
+  border-radius:14px;
+  background:var(--bg);
+  overflow-wrap:anywhere;
+}
+
+.chat-message.mine {
+  align-self:flex-end;
+  background:var(--on);
+  color:var(--onink);
+}
+
+.chat-message p {
+  white-space:pre-wrap;
+}
+
+.chat-message time {
+  display:block;
+  margin-top:4px;
+  font-size:11px;
+  opacity:.75;
+}
+
+.chat-compose {
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+}
+
+.chat-compose textarea {
+  min-width:0;
+  min-height:54px;
+}
+
+.chat-compose button {
+  flex:none;
+  padding:10px 16px;
+}
+
 .link {
   font-size:12px;
   word-break:break-all;

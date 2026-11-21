@@ -41,4 +41,5 @@ function renderList(){
     ticks[c.dataset.k]=c.checked;
     c.nextElementSibling.className=c.checked?"done":"";
   });
+  renderChat();
 }

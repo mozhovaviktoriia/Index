@@ -126,7 +126,9 @@ function require_chat_pair(PDO $pdo, int $participantId, string $direction): arr
 
 function chat_messages(PDO $pdo, array $pair, int $participantId): array
 {
-    $st = $pdo->prepare('SELECT sender_id, message, UNIX_TIMESTAMP(created_at) AS sent_at
+    $st = $pdo->prepare('SELECT id, sender_id, message,
+            UNIX_TIMESTAMP(COALESCE(updated_at, created_at)) AS sent_at,
+            updated_at IS NOT NULL AS edited
         FROM chat_messages
         WHERE giver_id = ? AND target_id = ?
         ORDER BY id DESC
@@ -134,13 +136,16 @@ function chat_messages(PDO $pdo, array $pair, int $participantId): array
     $st->execute([$pair['giver_id'], $pair['target_id']]);
     $kyiv = new DateTimeZone('Europe/Kyiv');
     return array_map(static function (array $message) use ($participantId, $kyiv): array {
+        $fromYou = (int)$message['sender_id'] === $participantId;
         $sentAt = (new DateTimeImmutable('@' . (int)$message['sent_at']))
             ->setTimezone($kyiv)
             ->format('d.m, H:i');
         return [
-            'fromYou' => (int)$message['sender_id'] === $participantId,
+            'id' => $fromYou ? (int)$message['id'] : null,
+            'fromYou' => $fromYou,
             'text' => $message['message'],
             'sentAt' => $sentAt,
+            'edited' => (bool)$message['edited'],
         ];
     }, array_reverse($st->fetchAll()));
 }
@@ -240,8 +245,12 @@ try {
         sender_id INT NOT NULL,
         message TEXT NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP(6) NULL DEFAULT NULL,
         KEY ix_chat_pair (giver_id, target_id, id)
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+    if (!$pdo->query("SHOW COLUMNS FROM chat_messages LIKE 'updated_at'")->fetch()) {
+        $pdo->exec('ALTER TABLE chat_messages ADD updated_at TIMESTAMP(6) NULL DEFAULT NULL');
+    }
 
     $pdo->exec('CREATE TABLE IF NOT EXISTS throttle (
         k VARCHAR(100) NOT NULL PRIMARY KEY,
@@ -391,6 +400,59 @@ try {
             $pair = require_chat_pair($pdo, (int)$participant['id'], $direction);
             $pdo->prepare('INSERT INTO chat_messages (giver_id, target_id, sender_id, message) VALUES (?, ?, ?, ?)')
                 ->execute([$pair['giver_id'], $pair['target_id'], $participant['id'], $message]);
+            out([
+                'ok' => true,
+                'role' => $direction,
+                'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
+            ]);
+            break;
+
+        case 'chat_edit':
+            $participant = require_participant($pdo, $in);
+            if (!is_drawn($pdo)) {
+                fail('Чат станет доступен после жеребьёвки.', 409);
+            }
+            $id = (int)($in['id'] ?? 0);
+            $message = trim((string)($in['message'] ?? ''));
+            if ($id < 1) {
+                fail('Не удалось найти сообщение');
+            }
+            if ($message === '' || str_len($message) > 1000) {
+                fail('Сообщение должно содержать от 1 до 1000 символов');
+            }
+            $direction = (string)($in['direction'] ?? 'giver');
+            $pair = require_chat_pair($pdo, (int)$participant['id'], $direction);
+            $st = $pdo->prepare('UPDATE chat_messages
+                SET message = ?, updated_at = CURRENT_TIMESTAMP(6)
+                WHERE id = ? AND giver_id = ? AND target_id = ? AND sender_id = ?');
+            $st->execute([$message, $id, $pair['giver_id'], $pair['target_id'], $participant['id']]);
+            if ($st->rowCount() !== 1) {
+                fail('Сообщение не найдено или его нельзя изменить.', 404);
+            }
+            out([
+                'ok' => true,
+                'role' => $direction,
+                'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
+            ]);
+            break;
+
+        case 'chat_delete':
+            $participant = require_participant($pdo, $in);
+            if (!is_drawn($pdo)) {
+                fail('Чат станет доступен после жеребьёвки.', 409);
+            }
+            $id = (int)($in['id'] ?? 0);
+            if ($id < 1) {
+                fail('Не удалось найти сообщение');
+            }
+            $direction = (string)($in['direction'] ?? 'giver');
+            $pair = require_chat_pair($pdo, (int)$participant['id'], $direction);
+            $st = $pdo->prepare('DELETE FROM chat_messages
+                WHERE id = ? AND giver_id = ? AND target_id = ? AND sender_id = ?');
+            $st->execute([$id, $pair['giver_id'], $pair['target_id'], $participant['id']]);
+            if ($st->rowCount() !== 1) {
+                fail('Сообщение не найдено или его нельзя удалить.', 404);
+            }
             out([
                 'ok' => true,
                 'role' => $direction,

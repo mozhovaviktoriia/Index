@@ -83,9 +83,64 @@ function renderChatMessages(messages){
   }
   const other=chatDirection==="giver"?"Получатель":"Санта";
   list.innerHTML=messages.map(message=>{
-    return '<div class="chat-message'+(message.fromYou?" mine":"")+'"><strong>'+(message.fromYou?"Ты":other)+'</strong><p>'+esc(message.text)+'</p><time>'+esc(message.sentAt)+'</time></div>';
+    const actions=message.fromYou?'<div class="chat-actions"><button type="button" class="chat-action" data-chat-edit="'+(+message.id)+'">Изменить</button><button type="button" class="chat-action" data-chat-delete="'+(+message.id)+'">Удалить</button></div>':"";
+    return '<div class="chat-message'+(message.fromYou?" mine":"")+'"><strong>'+(message.fromYou?"Ты":other)+'</strong>'+(message.edited?'<small class="chat-edited">изменено</small>':"")+'<p>'+esc(message.text)+'</p><time>'+esc(message.sentAt)+'</time>'+actions+'</div>';
   }).join("");
   list.scrollTop=list.scrollHeight;
+  list.querySelectorAll("button[data-chat-edit]").forEach(button=>button.onclick=()=>{
+    const text=button.closest(".chat-message").querySelector("p").textContent;
+    editChatMessage(+button.dataset.chatEdit,text);
+  });
+  list.querySelectorAll("button[data-chat-delete]").forEach(button=>button.onclick=()=>confirmChatMessageDelete(+button.dataset.chatDelete));
+}
+
+function editChatMessage(id,text){
+  const d=$("dlg"),auth=chatAuth,direction=chatDirection;
+  d.innerHTML='<h2>Редактировать сообщение</h2><label for="chat-edit-text">Текст сообщения</label><textarea id="chat-edit-text" maxlength="1000"></textarea><p id="chat-edit-error" class="err" role="status"></p><div class="row"><button id="chat-edit-save">Сохранить</button><button type="button" class="alt" id="chat-edit-cancel">Отмена</button></div>';
+  $("chat-edit-text").value=text;
+  $("chat-edit-cancel").onclick=()=>d.close();
+  $("chat-edit-save").onclick=async()=>{
+    const message=$("chat-edit-text").value.trim(),button=$("chat-edit-save");
+    if(!message){
+      $("chat-edit-error").textContent="Сообщение не может быть пустым.";
+      return;
+    }
+    button.disabled=true;
+    const res=await api("chat_edit",{name:auth.name,pin:auth.pin,direction:direction,id:id,message:message});
+    button.disabled=false;
+    if(!res.ok){
+      $("chat-edit-error").textContent=res.error||"Не удалось изменить сообщение.";
+      return;
+    }
+    if(chatAuth!==auth||chatDirection!==direction)return;
+    d.close();
+    chatAuth.role=res.role;
+    renderChatMessages(res.messages||[]);
+    $("chat-status").textContent="";
+  };
+  d.showModal();
+}
+
+function confirmChatMessageDelete(id){
+  const d=$("dlg"),auth=chatAuth,direction=chatDirection;
+  d.innerHTML='<h2>Удалить сообщение?</h2><p>Это действие нельзя отменить.</p><p id="chat-delete-error" class="err" role="status"></p><div class="row"><button id="chat-delete-confirm">Удалить</button><button type="button" class="alt" id="chat-delete-cancel">Отмена</button></div>';
+  $("chat-delete-cancel").onclick=()=>d.close();
+  $("chat-delete-confirm").onclick=async()=>{
+    const button=$("chat-delete-confirm");
+    button.disabled=true;
+    const res=await api("chat_delete",{name:auth.name,pin:auth.pin,direction:direction,id:id});
+    button.disabled=false;
+    if(!res.ok){
+      $("chat-delete-error").textContent=res.error||"Не удалось удалить сообщение.";
+      return;
+    }
+    if(chatAuth!==auth||chatDirection!==direction)return;
+    d.close();
+    chatAuth.role=res.role;
+    renderChatMessages(res.messages||[]);
+    $("chat-status").textContent="";
+  };
+  d.showModal();
 }
 
 async function loadChat(){

@@ -507,8 +507,8 @@ try {
             if ($recipientId < 1) {
                 fail('Выбери участника');
             }
-            if ($message === '' || str_len($message) > 500) {
-                fail('Текст сообщения должен быть от 1 до 500 символов');
+            if ($message === '' || str_len($message) > 2000) {
+                fail('Текст сообщения должен быть от 1 до 2000 символов');
             }
             $st = $pdo->prepare('SELECT name FROM participants WHERE id = ?');
             $st->execute([$recipientId]);

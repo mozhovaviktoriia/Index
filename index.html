@@ -67,6 +67,17 @@
     <div class="row"><button id="deadline-save">Сохранить срок</button><button class="alt" id="deadline-clear">Убрать срок</button></div>
     <p id="deadline-status" class="sub" aria-live="polite"></p>
   </div>
+  <div class="card">
+    <h2>Сообщение участнику</h2>
+    <p class="hint">Сообщение увидит только выбранный участник после ввода имени и секретного слова.</p>
+    <label for="notice-recipient">Кому отправить</label>
+    <select id="notice-recipient" disabled><option value="">Загружаю список участников…</option></select>
+    <label for="notice-message">Текст сообщения</label>
+    <textarea id="notice-message" maxlength="500">НЕ ОБИЖАЙТЕ ОРГАНИЗАТОРА.
+ИНАЧЕ ПОМЕНЯЮ ВАМ БД.</textarea>
+    <div class="row"><button id="notice-send" disabled>Отправить сообщение</button></div>
+    <p id="notice-status" class="sub" aria-live="polite"></p>
+  </div>
   <div class="row"><button id="go">Провести жеребьёвку</button><button class="alt hide" id="reset-draw">Сбросить жеребьёвку</button><button class="alt" id="refresh">Обновить список</button></div>
   <div id="pairs"></div>
 </section>

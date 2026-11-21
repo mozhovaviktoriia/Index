@@ -177,7 +177,7 @@ label {
   font-weight:600;
 }
 
-input,textarea {
+input,textarea,select {
   width:100%;
   padding:12px 14px;
   font:inherit;
@@ -187,7 +187,7 @@ input,textarea {
   border-radius:14px;
 }
 
-input:focus,textarea:focus,button:focus-visible {
+input:focus,textarea:focus,select:focus,button:focus-visible {
   outline:3px solid var(--pink);
   outline-offset:1px;
 }
@@ -635,6 +635,21 @@ dialog[open] {
 
 dialog h2 {
   margin-top:0;
+}
+
+.organizer-notice-cat {
+  display:block;
+  width:min(100%,300px);
+  max-height:46vh;
+  max-height:46dvh;
+  object-fit:contain;
+  margin:0 auto;
+  border-radius:12px;
+}
+
+.organizer-notice-message {
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
 }
 
 .chip {

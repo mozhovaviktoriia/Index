@@ -5,6 +5,10 @@ function renderOrg(res){
   orgDrawn=!!res.drawn;
   $("count").textContent="Участников: "+res.participants.length;
   $("chips").innerHTML=res.participants.map(p=>'<span class="chip">'+esc(p.name)+'<button class="x" data-r="'+(+p.id)+'" aria-label="Удалить">✕</button></span>').join("");
+  const recipient=$("notice-recipient");
+  recipient.innerHTML='<option value="">Выбери участника</option>'+res.participants.map(p=>'<option value="'+(+p.id)+'">'+esc(p.name)+'</option>').join("");
+  recipient.disabled=!res.participants.length;
+  $("notice-send").disabled=!res.participants.length;
   $("orgstate").textContent=orgDrawn?"Жеребьёвка проведена. Кто кому дарит, здесь не видно.":"Жеребьёвка ещё не проводилась.";
   $("go").textContent=orgDrawn?"Провести заново":"Провести жеребьёвку";
   $("reset-draw").classList.toggle("hide",!orgDrawn);
@@ -134,6 +138,37 @@ async function saveDeadline(value){
 
 $("deadline-save").onclick=()=>saveDeadline($("deadline-input").value);
 $("deadline-clear").onclick=()=>saveDeadline("");
+
+async function sendOrganizerNotice(){
+  const recipientId=Number($("notice-recipient").value),message=$("notice-message").value.trim();
+  if(!recipientId){
+    $("notice-status").textContent="Выбери участника.";
+    return;
+  }
+  if(!message){
+    $("notice-status").textContent="Напиши текст сообщения.";
+    $("notice-message").focus();
+    return;
+  }
+  const button=$("notice-send");
+  button.disabled=true;
+  $("notice-status").textContent="Отправляю…";
+  const res=await api("admin_send_notice",{password:orgPw,recipient_id:recipientId,message:message});
+  button.disabled=false;
+  if(!res.ok){
+    if(res.challenge){
+      $("notice-status").textContent="";
+      showErr(res,false);
+    }else{
+      $("notice-status").textContent="Не удалось отправить: "+(res.error||"попробуй ещё раз.");
+    }
+    return;
+  }
+  $("notice-message").value="";
+  $("notice-status").textContent="Сообщение отправлено для "+res.recipient_name+". Оно появится после ввода имени и секретного слова.";
+}
+
+$("notice-send").onclick=sendOrganizerNotice;
 
 // Удаление участника
 $("chips").addEventListener("click",e=>{

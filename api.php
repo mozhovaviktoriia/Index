@@ -107,6 +107,20 @@ function require_participant(PDO $pdo, array $in): array
     return $participant;
 }
 
+function pending_organizer_notice(PDO $pdo, int $participantId): ?array
+{
+    $st = $pdo->prepare('SELECT id, message FROM organizer_notices
+        WHERE recipient_id = ? AND acknowledged_at IS NULL
+        ORDER BY id
+        LIMIT 1');
+    $st->execute([$participantId]);
+    $notice = $st->fetch();
+    if (!$notice) {
+        return null;
+    }
+    return ['id' => (int)$notice['id'], 'message' => (string)$notice['message']];
+}
+
 function require_chat_pair(PDO $pdo, int $participantId, string $direction): array
 {
     if ($direction === 'giver') {
@@ -265,6 +279,15 @@ try {
     $pdo->prepare('INSERT IGNORE INTO app_settings (setting_key, setting_value) VALUES (?, ?)')
         ->execute(['checklist_locked', '0']);
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS organizer_notices (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        recipient_id INT NOT NULL,
+        message TEXT NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        acknowledged_at TIMESTAMP NULL DEFAULT NULL,
+        KEY ix_notice_recipient_pending (recipient_id, acknowledged_at, id)
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+
     switch ($action) {
         case 'event_info':
             out(['ok' => true, 'deadline' => get_deadline($pdo), 'drawn' => is_drawn($pdo)]);
@@ -345,32 +368,39 @@ try {
             break;
 
         case 'reveal':
-            $name = clean_name((string)($in['name'] ?? ''));
-            $pin = clean_pin((string)($in['pin'] ?? ''));
-            if ($name === '' || $pin === '') {
-                fail('Введи имя и секретное слово');
-            }
-            $st = $pdo->prepare('SELECT id, pin_hash FROM participants WHERE name = ?');
-            $st->execute([$name]);
-            $row = $st->fetch();
-            if (!$row) {
-                fail('Такого имени нет в списке. Проверь, как оно написано в анкете.', 404);
-            }
-            if (!check_pin($pdo, $name, $pin, (string)$row['pin_hash'])) {
-                fail('Секретное слово не подходит', 403);
-            }
+            $participant = require_participant($pdo, $in);
+            $notice = pending_organizer_notice($pdo, (int)$participant['id']);
             $st = $pdo->prepare('SELECT t.name AS name, t.data AS data FROM pairs p JOIN participants t ON t.id = p.target_id WHERE p.giver_id = ?');
-            $st->execute([$row['id']]);
+            $st->execute([$participant['id']]);
             $r = $st->fetch();
             if (!$r) {
-                out(['ok' => true, 'status' => 'waiting']);
+                out(['ok' => true, 'status' => 'waiting', 'notice' => $notice]);
             }
             $decoded = json_decode((string)$r['data'], true);
             out([
                 'ok' => true,
                 'status' => 'ready',
                 'target' => ['name' => $r['name'], 'data' => is_array($decoded) ? $decoded : new stdClass()],
+                'notice' => $notice,
             ]);
+            break;
+
+        case 'notice_ack':
+            $participant = require_participant($pdo, $in);
+            $id = (int)($in['id'] ?? 0);
+            if ($id < 1) {
+                fail('Не удалось определить сообщение');
+            }
+            $st = $pdo->prepare('SELECT id FROM organizer_notices WHERE id = ? AND recipient_id = ?');
+            $st->execute([$id, $participant['id']]);
+            if (!$st->fetch()) {
+                fail('Сообщение не найдено', 404);
+            }
+            $pdo->prepare('UPDATE organizer_notices
+                SET acknowledged_at = COALESCE(acknowledged_at, CURRENT_TIMESTAMP)
+                WHERE id = ? AND recipient_id = ?')
+                ->execute([$id, $participant['id']]);
+            out(['ok' => true, 'notice' => pending_organizer_notice($pdo, (int)$participant['id'])]);
             break;
 
         case 'chat_load':
@@ -470,6 +500,27 @@ try {
             out(['ok' => true, 'participants' => $rows, 'drawn' => is_drawn($pdo), 'deadline' => get_deadline($pdo)]);
             break;
 
+        case 'admin_send_notice':
+            require_admin($pdo, $in);
+            $recipientId = (int)($in['recipient_id'] ?? 0);
+            $message = trim((string)($in['message'] ?? ''));
+            if ($recipientId < 1) {
+                fail('Выбери участника');
+            }
+            if ($message === '' || str_len($message) > 500) {
+                fail('Текст сообщения должен быть от 1 до 500 символов');
+            }
+            $st = $pdo->prepare('SELECT name FROM participants WHERE id = ?');
+            $st->execute([$recipientId]);
+            $recipientName = $st->fetchColumn();
+            if ($recipientName === false) {
+                fail('Участник не найден. Обнови список и попробуй снова.', 404);
+            }
+            $pdo->prepare('INSERT INTO organizer_notices (recipient_id, message) VALUES (?, ?)')
+                ->execute([$recipientId, $message]);
+            out(['ok' => true, 'recipient_name' => (string)$recipientName]);
+            break;
+
         case 'admin_set_deadline':
             require_admin($pdo, $in);
             $value = trim((string)($in['deadline'] ?? ''));
@@ -499,6 +550,7 @@ try {
             lock_checklist_state($pdo);
             $pdo->exec('DELETE FROM chat_messages');
             $pdo->exec('DELETE FROM pairs');
+            $pdo->prepare('DELETE FROM organizer_notices WHERE recipient_id = ?')->execute([$id]);
             $pdo->prepare('DELETE FROM participants WHERE id = ?')->execute([$id]);
             $pdo->commit();
             out(['ok' => true]);

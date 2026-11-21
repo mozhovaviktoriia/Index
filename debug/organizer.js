@@ -1,5 +1,22 @@
 // Режим организатора: вход по паролю, список участников, удаление и жеребьёвка.
 
+function renderOrganizerNotices(notices){
+  const el=$("notice-queue");
+  if(!notices.length){
+    el.innerHTML='<p class="sub">Нет ожидающих писем.</p>';
+    return;
+  }
+  el.innerHTML=notices.map(notice=>'<div class="notice-queue-item"><strong>'+esc(notice.recipient_name)+'</strong><p class="organizer-notice-message">'+esc(notice.message)+'</p><div class="row"><button type="button" data-notice-edit="'+(+notice.id)+'">Изменить</button><button type="button" class="alt" data-notice-cancel="'+(+notice.id)+'">Отменить отправку</button></div></div>').join("");
+  el.querySelectorAll("button[data-notice-edit]").forEach(button=>button.onclick=()=>{
+    const item=button.closest(".notice-queue-item");
+    editOrganizerNotice(+button.dataset.noticeEdit,item.querySelector(".organizer-notice-message").textContent);
+  });
+  el.querySelectorAll("button[data-notice-cancel]").forEach(button=>button.onclick=()=>{
+    const item=button.closest(".notice-queue-item");
+    confirmOrganizerNoticeCancel(+button.dataset.noticeCancel,item.querySelector("strong").textContent);
+  });
+}
+
 // Список участников
 function renderOrg(res){
   orgDrawn=!!res.drawn;
@@ -9,6 +26,7 @@ function renderOrg(res){
   recipient.innerHTML='<option value="">Выбери участника</option>'+res.participants.map(p=>'<option value="'+(+p.id)+'">'+esc(p.name)+'</option>').join("");
   recipient.disabled=!res.participants.length;
   $("notice-send").disabled=!res.participants.length;
+  renderOrganizerNotices(res.notices||[]);
   $("orgstate").textContent=orgDrawn?"Жеребьёвка проведена. Кто кому дарит, здесь не видно.":"Жеребьёвка ещё не проводилась.";
   $("go").textContent=orgDrawn?"Провести заново":"Провести жеребьёвку";
   $("reset-draw").classList.toggle("hide",!orgDrawn);
@@ -166,9 +184,65 @@ async function sendOrganizerNotice(){
   }
   $("notice-message").value="";
   $("notice-status").textContent="Сообщение отправлено для "+res.recipient_name+". Оно появится после ввода имени и секретного слова.";
+  await loadOrg();
 }
 
 $("notice-send").onclick=sendOrganizerNotice;
+
+function editOrganizerNotice(id,message){
+  const d=$("dlg");
+  d.innerHTML='<h2>Изменить письмо</h2><label for="notice-edit-text">Текст письма</label><textarea id="notice-edit-text" maxlength="2000"></textarea><p id="notice-edit-error" class="err" role="status"></p><div class="row"><button id="notice-edit-save">Сохранить</button><button type="button" class="alt" id="notice-edit-cancel">Закрыть</button></div>';
+  $("notice-edit-text").value=message;
+  $("notice-edit-cancel").onclick=()=>d.close();
+  $("notice-edit-save").onclick=async()=>{
+    const text=$("notice-edit-text").value.trim(),button=$("notice-edit-save");
+    if(!text){
+      $("notice-edit-error").textContent="Текст письма не может быть пустым.";
+      return;
+    }
+    button.disabled=true;
+    const res=await api("admin_notice_edit",{password:orgPw,id:id,message:text});
+    button.disabled=false;
+    if(!res.ok){
+      if(res.challenge){
+        d.close();
+        showErr(res,false);
+      }else{
+        $("notice-edit-error").textContent=res.error||"Не удалось изменить письмо.";
+      }
+      return;
+    }
+    d.close();
+    $("notice-status").textContent="Письмо обновлено.";
+    await loadOrg();
+  };
+  d.showModal();
+}
+
+function confirmOrganizerNoticeCancel(id,recipientName){
+  const d=$("dlg");
+  d.innerHTML='<h2>Отменить отправку?</h2><p>Письмо для '+esc(recipientName)+' будет удалено из очереди.</p><p class="sub">Отменить можно, только пока адресат его не открыл.</p><p id="notice-cancel-error" class="err" role="status"></p><div class="row"><button id="notice-cancel-confirm">Отменить отправку</button><button type="button" class="alt" id="notice-cancel-close">Закрыть</button></div>';
+  $("notice-cancel-close").onclick=()=>d.close();
+  $("notice-cancel-confirm").onclick=async()=>{
+    const button=$("notice-cancel-confirm");
+    button.disabled=true;
+    const res=await api("admin_notice_cancel",{password:orgPw,id:id});
+    button.disabled=false;
+    if(!res.ok){
+      if(res.challenge){
+        d.close();
+        showErr(res,false);
+      }else{
+        $("notice-cancel-error").textContent=res.error||"Не удалось отменить отправку.";
+      }
+      return;
+    }
+    d.close();
+    $("notice-status").textContent="Отправка отменена.";
+    await loadOrg();
+  };
+  d.showModal();
+}
 
 // Удаление участника
 $("chips").addEventListener("click",e=>{

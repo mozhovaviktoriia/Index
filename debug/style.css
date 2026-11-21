@@ -652,6 +652,16 @@ dialog h2 {
   overflow-wrap:anywhere;
 }
 
+.notice-queue-item {
+  border-top:1px solid var(--line);
+  margin-top:12px;
+  padding-top:12px;
+}
+
+.notice-queue-item p {
+  margin:8px 0 12px;
+}
+
 .chip {
   display:inline-flex;
   align-items:center;

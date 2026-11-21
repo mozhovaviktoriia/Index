@@ -107,18 +107,40 @@ function require_participant(PDO $pdo, array $in): array
     return $participant;
 }
 
-function pending_organizer_notice(PDO $pdo, int $participantId): ?array
+function claim_pending_organizer_notice(PDO $pdo, int $participantId): ?array
 {
-    $st = $pdo->prepare('SELECT id, message FROM organizer_notices
-        WHERE recipient_id = ? AND acknowledged_at IS NULL
-        ORDER BY id
-        LIMIT 1');
-    $st->execute([$participantId]);
-    $notice = $st->fetch();
-    if (!$notice) {
-        return null;
+    $pdo->beginTransaction();
+    try {
+        $st = $pdo->prepare('SELECT id, message FROM organizer_notices
+            WHERE recipient_id = ? AND delivered_at IS NULL AND acknowledged_at IS NULL
+            ORDER BY id
+            LIMIT 1
+            FOR UPDATE');
+        $st->execute([$participantId]);
+        $notice = $st->fetch();
+        if (!$notice) {
+            $pdo->commit();
+            return null;
+        }
+        $pdo->prepare('UPDATE organizer_notices SET delivered_at = CURRENT_TIMESTAMP WHERE id = ?')
+            ->execute([$notice['id']]);
+        $pdo->commit();
+        return ['id' => (int)$notice['id'], 'message' => (string)$notice['message']];
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $e;
     }
-    return ['id' => (int)$notice['id'], 'message' => (string)$notice['message']];
+}
+
+function pending_organizer_notices(PDO $pdo): array
+{
+    return $pdo->query('SELECT n.id, p.name AS recipient_name, n.message
+        FROM organizer_notices n
+        JOIN participants p ON p.id = n.recipient_id
+        WHERE n.delivered_at IS NULL AND n.acknowledged_at IS NULL
+        ORDER BY n.id')->fetchAll();
 }
 
 function require_chat_pair(PDO $pdo, int $participantId, string $direction): array
@@ -284,9 +306,13 @@ try {
         recipient_id INT NOT NULL,
         message TEXT NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        delivered_at TIMESTAMP NULL DEFAULT NULL,
         acknowledged_at TIMESTAMP NULL DEFAULT NULL,
         KEY ix_notice_recipient_pending (recipient_id, acknowledged_at, id)
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+    if (!$pdo->query("SHOW COLUMNS FROM organizer_notices LIKE 'delivered_at'")->fetch()) {
+        $pdo->exec('ALTER TABLE organizer_notices ADD delivered_at TIMESTAMP NULL DEFAULT NULL');
+    }
 
     switch ($action) {
         case 'event_info':
@@ -369,7 +395,7 @@ try {
 
         case 'reveal':
             $participant = require_participant($pdo, $in);
-            $notice = pending_organizer_notice($pdo, (int)$participant['id']);
+            $notice = claim_pending_organizer_notice($pdo, (int)$participant['id']);
             $st = $pdo->prepare('SELECT t.name AS name, t.data AS data FROM pairs p JOIN participants t ON t.id = p.target_id WHERE p.giver_id = ?');
             $st->execute([$participant['id']]);
             $r = $st->fetch();
@@ -400,7 +426,7 @@ try {
                 SET acknowledged_at = COALESCE(acknowledged_at, CURRENT_TIMESTAMP)
                 WHERE id = ? AND recipient_id = ?')
                 ->execute([$id, $participant['id']]);
-            out(['ok' => true, 'notice' => pending_organizer_notice($pdo, (int)$participant['id'])]);
+            out(['ok' => true, 'notice' => claim_pending_organizer_notice($pdo, (int)$participant['id'])]);
             break;
 
         case 'chat_load':
@@ -497,7 +523,13 @@ try {
         case 'admin_list':
             require_admin($pdo, $in);
             $rows = $pdo->query('SELECT id, name FROM participants ORDER BY id')->fetchAll();
-            out(['ok' => true, 'participants' => $rows, 'drawn' => is_drawn($pdo), 'deadline' => get_deadline($pdo)]);
+            out([
+                'ok' => true,
+                'participants' => $rows,
+                'notices' => pending_organizer_notices($pdo),
+                'drawn' => is_drawn($pdo),
+                'deadline' => get_deadline($pdo),
+            ]);
             break;
 
         case 'admin_send_notice':
@@ -519,6 +551,48 @@ try {
             $pdo->prepare('INSERT INTO organizer_notices (recipient_id, message) VALUES (?, ?)')
                 ->execute([$recipientId, $message]);
             out(['ok' => true, 'recipient_name' => (string)$recipientName]);
+            break;
+
+        case 'admin_notice_edit':
+            require_admin($pdo, $in);
+            $id = (int)($in['id'] ?? 0);
+            $message = trim((string)($in['message'] ?? ''));
+            if ($id < 1) {
+                fail('Не удалось определить письмо');
+            }
+            if ($message === '' || str_len($message) > 2000) {
+                fail('Текст письма должен быть от 1 до 2000 символов');
+            }
+            $pdo->beginTransaction();
+            $st = $pdo->prepare('SELECT delivered_at, acknowledged_at FROM organizer_notices WHERE id = ? FOR UPDATE');
+            $st->execute([$id]);
+            $notice = $st->fetch();
+            if (!$notice || $notice['delivered_at'] !== null || $notice['acknowledged_at'] !== null) {
+                $pdo->rollBack();
+                fail('Письмо уже показано адресату или не найдено; изменить его нельзя.', 409);
+            }
+            $pdo->prepare('UPDATE organizer_notices SET message = ? WHERE id = ?')->execute([$message, $id]);
+            $pdo->commit();
+            out(['ok' => true]);
+            break;
+
+        case 'admin_notice_cancel':
+            require_admin($pdo, $in);
+            $id = (int)($in['id'] ?? 0);
+            if ($id < 1) {
+                fail('Не удалось определить письмо');
+            }
+            $pdo->beginTransaction();
+            $st = $pdo->prepare('SELECT delivered_at, acknowledged_at FROM organizer_notices WHERE id = ? FOR UPDATE');
+            $st->execute([$id]);
+            $notice = $st->fetch();
+            if (!$notice || $notice['delivered_at'] !== null || $notice['acknowledged_at'] !== null) {
+                $pdo->rollBack();
+                fail('Письмо уже показано адресату или не найдено; отменить его нельзя.', 409);
+            }
+            $pdo->prepare('DELETE FROM organizer_notices WHERE id = ?')->execute([$id]);
+            $pdo->commit();
+            out(['ok' => true]);
             break;
 
         case 'admin_set_deadline':

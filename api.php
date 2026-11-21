@@ -383,6 +383,7 @@ try {
             out([
                 'ok' => true,
                 'role' => $direction,
+                'direction' => $direction,
                 'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
             ]);
             break;
@@ -403,6 +404,7 @@ try {
             out([
                 'ok' => true,
                 'role' => $direction,
+                'direction' => $direction,
                 'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
             ]);
             break;
@@ -432,6 +434,7 @@ try {
             out([
                 'ok' => true,
                 'role' => $direction,
+                'direction' => $direction,
                 'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
             ]);
             break;
@@ -456,6 +459,7 @@ try {
             out([
                 'ok' => true,
                 'role' => $direction,
+                'direction' => $direction,
                 'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
             ]);
             break;

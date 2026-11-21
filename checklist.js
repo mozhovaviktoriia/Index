@@ -45,13 +45,14 @@ function renderList(){
 }
 
 // Анонимный чат участников одной пары.
-let chatLoading=false,chatDirection="giver";
+let chatLoading=false,chatDirection="giver",chatReady=false;
 
 function renderChat(){
   if(!chatAuth)return;
   const el=$("v-list");
   chatDirection="giver";
-  el.insertAdjacentHTML("beforeend",'<div class="card chat-card"><h2>Уточнить подарок</h2><p class="sub">Переписки раздельные и анонимные.</p><div class="chat-tabs" role="tablist"><button class="chat-tab" type="button" role="tab" data-direction="giver" aria-selected="true">Тому, кому дарю</button><button class="chat-tab" type="button" role="tab" data-direction="recipient" aria-selected="false">Кто дарит мне</button></div><div id="chat-status" class="sub" role="status" aria-live="polite">Загружаю сообщения…</div><div id="chat-messages" class="chat-messages" aria-live="polite"></div><label for="chat-input">Сообщение</label><div class="chat-compose"><textarea id="chat-input" maxlength="1000" placeholder="Напиши вопрос или ответ"></textarea><button id="chat-send">Отправить</button></div><p class="hint">До 1000 символов. Enter + Ctrl отправляет сообщение.</p></div>');
+  chatReady=false;
+  el.insertAdjacentHTML("beforeend",'<div class="card chat-card"><h2>Уточнить подарок</h2><p class="sub">Переписки раздельные и анонимные.</p><div class="chat-tabs" role="tablist"><button class="chat-tab" type="button" role="tab" data-direction="giver" aria-selected="true">Тому, кому дарю</button><button class="chat-tab" type="button" role="tab" data-direction="recipient" aria-selected="false">Кто дарит мне</button></div><div id="chat-status" class="sub" role="status" aria-live="polite">Загружаю сообщения…</div><div id="chat-messages" class="chat-messages" aria-live="polite"></div><label for="chat-input">Сообщение</label><div class="chat-compose"><textarea id="chat-input" maxlength="1000" placeholder="Напиши вопрос или ответ"></textarea><button id="chat-send" disabled>Отправить</button></div><p class="hint">До 1000 символов. Enter + Ctrl отправляет сообщение.</p></div>');
   document.querySelectorAll(".chat-tab").forEach(button=>button.onclick=()=>selectChat(button.dataset.direction));
   $("chat-send").onclick=sendChatMessage;
   $("chat-input").addEventListener("keydown",e=>{
@@ -66,6 +67,8 @@ function renderChat(){
 function selectChat(direction){
   if(direction===chatDirection)return;
   chatDirection=direction;
+  chatReady=false;
+  $("chat-send").disabled=true;
   document.querySelectorAll(".chat-tab").forEach(button=>{
     button.setAttribute("aria-selected",button.dataset.direction===direction?"true":"false");
   });
@@ -153,9 +156,19 @@ async function loadChat(){
     const res=await api("chat_load",{name:auth.name,pin:auth.pin,direction:direction});
     if(chatAuth!==auth||chatDirection!==direction)return;
     if(!res.ok){
+      chatReady=false;
+      $("chat-send").disabled=true;
       status.textContent="Не удалось загрузить чат: "+(res.error||"попробуй обновить страницу.");
       return;
     }
+    if(res.direction!==direction){
+      chatReady=false;
+      $("chat-send").disabled=true;
+      status.textContent="Версия чата на хостинге устарела. Обнови api.php и checklist.js.";
+      return;
+    }
+    chatReady=true;
+    $("chat-send").disabled=false;
     chatAuth.role=res.role;
     renderChatMessages(res.messages||[]);
     status.textContent="";
@@ -167,7 +180,7 @@ async function loadChat(){
 
 async function sendChatMessage(){
   const input=$("chat-input"),button=$("chat-send"),status=$("chat-status");
-  if(!chatAuth||!input||!button||button.disabled)return;
+  if(!chatAuth||!chatReady||!input||!button||button.disabled)return;
   const auth=chatAuth;
   const direction=chatDirection;
   const message=input.value.trim();
@@ -187,6 +200,12 @@ async function sendChatMessage(){
   if(chatAuth!==auth||chatDirection!==direction)return;
   if(!res.ok){
     status.textContent="Не удалось отправить сообщение: "+(res.error||"попробуй ещё раз.");
+    return;
+  }
+  if(res.direction!==direction){
+    chatReady=false;
+    button.disabled=true;
+    status.textContent="Версия чата на хостинге устарела. Обнови api.php и checklist.js.";
     return;
   }
   input.value="";

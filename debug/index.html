@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="theme-color" content="#8EA9D8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C1020" media="(prefers-color-scheme: dark)">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тайный Санта — DEBUG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="demo">DEBUG | Тестовая версия, отдельная база</div>
+
+<div id="top" class="top hide">
+<nav role="tablist">
+  <button role="tab" data-v="home" aria-selected="false">Главная</button>
+  <button role="tab" data-v="form" aria-selected="true">Анкета</button>
+  <button role="tab" data-v="draw" aria-selected="false">Организатор</button>
+  <button role="tab" data-v="list" aria-selected="false">Чек-лист</button>
+</nav>
+<div class="lights" aria-hidden="true"></div>
+</div>
+<div id="deadline-banner" class="deadline-banner hide" role="status" aria-live="polite">
+  <div class="deadline-marquee">
+    <div class="deadline-marquee-track">
+      <div class="deadline-marquee-item">
+        <strong id="deadline-date"></strong>
+        <span id="deadline-countdown"></span>
+        <span id="deadline-note" class="sub"></span>
+      </div>
+      <div class="deadline-marquee-item" aria-hidden="true">
+        <strong data-deadline-copy="deadline-date"></strong>
+        <span data-deadline-copy="deadline-countdown"></span>
+        <span data-deadline-copy="deadline-note" class="sub"></span>
+      </div>
+    </div>
+  </div>
+</div>
+<main>
+<section id="v-welcome" class="welcome">
+  <div class="big" aria-label="2027">2<i>0</i>27</div>
+  <a class="cat-link" href="https://tenor.com/view/hi-otag-cat-gif-496667468136015874" target="_blank" rel="noopener noreferrer" aria-label="Открыть GIF на Tenor">
+    <img class="cat" src="assets/hi-otag-transparent.gif" width="200" height="156" alt="Кот машет лапкой">
+  </a>
+  <h1>Привет, друг!</h1>
+  <p>Готов написать список своих тайных желаний? Твой Санта читает внимательно и ничего не расскажет.</p>
+  <label for="nick">Как тебя называть?</label>
+  <input id="nick" placeholder="Например, Чебупеля" autocomplete="off">
+  <button id="start">Поехали</button>
+  <button class="alt" id="edit">Изменить чек-лист</button>
+  <button class="alt" id="havecode">Узнать, для кого я Санта</button>
+  <div id="codebox" class="hide"><label for="rname">Твоё имя</label><input id="rname" autocomplete="off"><label for="rpin">Секретное слово</label><input id="rpin" autocomplete="off"><button id="reveal">Открыть мою пару</button><div id="codeerr"></div></div>
+  <button class="alt" id="adm">Я организатор</button>
+</section>
+<section id="v-form" class="hide"></section>
+<section id="v-check" class="hide"></section>
+<section id="v-draw" class="hide">
+  <h1>Организатор</h1>
+  <p class="sub" id="orgstate"></p>
+  <div class="card"><h2 id="count"></h2><div class="chips" id="chips"></div></div>
+  <div class="card">
+    <h2>Срок заполнения чек-листов</h2>
+    <p class="hint">Время указано по Киеву. После срока организатор запускает жеребьёвку вручную.</p>
+    <label for="deadline-input">Дата и время</label>
+    <input id="deadline-input" type="datetime-local">
+    <div class="row"><button id="deadline-save">Сохранить срок</button><button class="alt" id="deadline-clear">Убрать срок</button></div>
+    <p id="deadline-status" class="sub" aria-live="polite"></p>
+  </div>
+  <div class="row"><button id="go">Провести жеребьёвку</button><button class="alt hide" id="reset-draw">Сбросить жеребьёвку</button><button class="alt" id="refresh">Обновить список</button></div>
+  <div id="pairs"></div>
+</section>
+<section id="v-list" class="hide"></section>
+<dialog id="dlg"></dialog>
+</main>
+
+<script src="options.js"></script>
+<script src="state.js"></script>
+<script src="utils.js"></script>
+<script src="api.js"></script>
+<script src="form.js"></script>
+<script src="checklist.js"></script>
+<script src="organizer.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

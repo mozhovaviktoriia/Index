@@ -126,17 +126,17 @@ function require_chat_pair(PDO $pdo, int $participantId, string $direction): arr
 
 function chat_messages(PDO $pdo, array $pair, int $participantId): array
 {
-    $st = $pdo->prepare("SELECT sender_id, message, DATE_FORMAT(created_at, '%d.%m %H:%i') AS sent_at
+    $st = $pdo->prepare('SELECT sender_id, message, UNIX_TIMESTAMP(created_at) AS sent_at
         FROM chat_messages
         WHERE giver_id = ? AND target_id = ?
         ORDER BY id DESC
-        LIMIT 100");
+        LIMIT 100');
     $st->execute([$pair['giver_id'], $pair['target_id']]);
     return array_map(static function (array $message) use ($participantId): array {
         return [
             'fromYou' => (int)$message['sender_id'] === $participantId,
             'text' => $message['message'],
-            'sentAt' => $message['sent_at'],
+            'sentAt' => (int)$message['sent_at'],
         ];
     }, array_reverse($st->fetchAll()));
 }

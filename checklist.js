@@ -46,6 +46,9 @@ function renderList(){
 
 // Анонимный чат участников одной пары.
 let chatLoading=false,chatDirection="giver";
+const chatTimeFormat=new Intl.DateTimeFormat("ru-RU",{
+  timeZone:"Europe/Kyiv",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"
+});
 
 function renderChat(){
   if(!chatAuth)return;
@@ -82,7 +85,10 @@ function renderChatMessages(messages){
     return;
   }
   const other=chatDirection==="giver"?"Получатель":"Санта";
-  list.innerHTML=messages.map(message=>'<div class="chat-message'+(message.fromYou?" mine":"")+'"><strong>'+(message.fromYou?"Ты":other)+'</strong><p>'+esc(message.text)+'</p><time>'+esc(message.sentAt)+'</time></div>').join("");
+  list.innerHTML=messages.map(message=>{
+    const sentAt=new Date(message.sentAt*1000);
+    return '<div class="chat-message'+(message.fromYou?" mine":"")+'"><strong>'+(message.fromYou?"Ты":other)+'</strong><p>'+esc(message.text)+'</p><time datetime="'+sentAt.toISOString()+'">'+chatTimeFormat.format(sentAt)+'</time></div>';
+  }).join("");
   list.scrollTop=list.scrollHeight;
 }
 

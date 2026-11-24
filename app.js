@@ -4,6 +4,12 @@ let eventDeadline=null,eventDrawn=false;
 const giftDeadline="2026-12-25T00:00:00+02:00";
 let timerMode="draw";
 
+function pluralDays(number){
+  if(number%10===1&&number%100!==11)return "день";
+  if(number%10>=2&&number%10<=4&&(number%100<12||number%100>14))return "дня";
+  return "дней";
+}
+
 function setDeadlineText(id,text){
   $(id).textContent=text;
   document.querySelectorAll(`[data-deadline-copy="${id}"]`).forEach(node=>node.textContent=text);
@@ -32,17 +38,17 @@ function renderDeadline(deadline,drawn,mode){
 function updateDeadline(){
   if(timerMode==="gift"){
     const date=new Date(giftDeadline);
-    setDeadlineText("deadline-date","До отправки подарков — 25 декабря 2026 года.");
+    setDeadlineText("deadline-date","🎅 САНТА НА СВЯЗИ:");
     const left=Math.floor((date.getTime()-Date.now())/1000);
     if(left<=0){
-      setDeadlineText("deadline-countdown","Подарочки уже отправляются!");
-      setDeadlineText("deadline-note","Тайный Санта тщательно пакует сюрпризы.");
+      setDeadlineText("deadline-countdown","Подарки уже отправлены.");
+      setDeadlineText("deadline-note","Подарки пакуются, эльфы не дремлют, база данных под охраной. Не подведите.");
       return;
     }
     const days=Math.floor(left/86400),hours=Math.floor(left%86400/3600),minutes=Math.floor(left%3600/60),seconds=left%60;
     const pad=n=>String(n).padStart(2,"0");
-    setDeadlineText("deadline-countdown","До отправки осталось: "+(days?days+" дн ":"")+pad(hours)+" ч "+pad(minutes)+" мин "+pad(seconds)+" сек");
-    setDeadlineText("deadline-note","Тайный Санта пакует подарочки и готовит их к отправке.");
+    setDeadlineText("deadline-countdown","До отправки подарков осталось "+days+" "+pluralDays(days)+" "+pad(hours)+":"+pad(minutes)+":"+pad(seconds)+".");
+    setDeadlineText("deadline-note","Подарки пакуются, эльфы не дремлют, база данных под охраной. Не подведите.");
     return;
   }
   if(!eventDeadline)return;

@@ -52,7 +52,7 @@ function renderChat(){
   const el=$("v-list");
   chatDirection="giver";
   chatReady=false;
-  el.insertAdjacentHTML("beforeend",'<div class="card chat-card"><h2>Уточнить подарок</h2><p class="sub">Переписки раздельные и анонимные.</p><div class="chat-tabs" role="tablist"><button class="chat-tab" type="button" role="tab" data-direction="giver" aria-selected="true">Тому, кому дарю</button><button class="chat-tab" type="button" role="tab" data-direction="recipient" aria-selected="false">Кто дарит мне</button></div><div id="chat-status" class="sub" role="status" aria-live="polite">Загружаю сообщения…</div><div id="chat-messages" class="chat-messages" aria-live="polite"></div><label for="chat-input">Сообщение</label><div class="chat-compose"><textarea id="chat-input" maxlength="1000" placeholder="Напиши вопрос или ответ"></textarea><button id="chat-send" disabled>Отправить</button></div><p class="hint">До 1000 символов. Enter + Ctrl отправляет сообщение.</p><div class="telegram-notifications"><h3>Уведомления в Telegram</h3><p id="telegram-status" class="sub">Проверяем подключение…</p><button id="telegram-bind" type="button" class="alt">Подключить Telegram</button><button id="telegram-unlink" type="button" class="alt hide">Отключить Telegram</button></div></div>');
+  el.insertAdjacentHTML("beforeend",'<div class="card chat-card"><h2>Уточнить подарок</h2><p class="sub">Переписки раздельные и анонимные.</p><div class="chat-tabs" role="tablist"><button class="chat-tab" type="button" role="tab" data-direction="giver" aria-selected="true">Тому, кому дарю</button><button class="chat-tab" type="button" role="tab" data-direction="recipient" aria-selected="false">Кто дарит мне</button></div><div id="chat-status" class="sub" role="status" aria-live="polite">Загружаю сообщения…</div><div id="chat-messages" class="chat-messages" aria-live="polite"></div><label for="chat-input">Сообщение</label><div class="chat-compose"><textarea id="chat-input" maxlength="1000" placeholder="Напиши вопрос или ответ"></textarea><button id="chat-send" disabled>Отправить</button></div><p class="hint">До 1000 символов. Enter + Ctrl отправляет сообщение.</p><div class="telegram-notifications"><h3>Уведомления в Telegram</h3><p id="telegram-status" class="sub">Проверяем подключение…</p><p id="telegram-bind-help" class="hint hide"></p><input id="telegram-start-command" class="hide" readonly aria-label="Команда подключения Telegram"><div class="row"><button id="telegram-copy-command" type="button" class="alt hide">Скопировать команду</button><button id="telegram-open-bot" type="button" class="alt hide">Открыть бота</button></div><button id="telegram-bind" type="button" class="alt">Подключить Telegram</button><button id="telegram-unlink" type="button" class="alt hide">Отключить Telegram</button></div></div>');
   document.querySelectorAll(".chat-tab").forEach(button=>button.onclick=()=>selectChat(button.dataset.direction));
   $("chat-send").onclick=sendChatMessage;
   $("chat-input").addEventListener("keydown",e=>{
@@ -63,6 +63,8 @@ function renderChat(){
   });
   $("telegram-bind").onclick=bindTelegram;
   $("telegram-unlink").onclick=unlinkTelegram;
+  $("telegram-copy-command").onclick=copyTelegramStartCommand;
+  $("telegram-open-bot").onclick=()=>window.open("https://t.me/santa_nv2026_bot","_blank","noopener,noreferrer");
   loadTelegramStatus();
   loadChat();
 }
@@ -158,8 +160,13 @@ async function loadTelegramStatus(){
     $("telegram-status").textContent=res.error||"Не удалось проверить Telegram.";
     return;
   }
-  $("telegram-bind").classList.toggle("hide",!!res.linked);
-  $("telegram-unlink").classList.toggle("hide",!res.linked);
+  const linked=!!res.linked;
+  $("telegram-bind").classList.toggle("hide",linked);
+  $("telegram-unlink").classList.toggle("hide",!linked);
+  $("telegram-bind-help").classList.toggle("hide",linked);
+  $("telegram-start-command").classList.toggle("hide",linked);
+  $("telegram-copy-command").classList.toggle("hide",linked);
+  $("telegram-open-bot").classList.toggle("hide",linked);
   $("telegram-status").textContent=res.linked
     ? "Telegram подключён"+(res.username?" (@"+res.username+")":"")+"."
     : "Telegram не подключён.";
@@ -168,26 +175,38 @@ async function loadTelegramStatus(){
 async function bindTelegram(){
   if(!chatAuth)return;
   const auth=chatAuth,button=$("telegram-bind");
-  const popup=window.open("about:blank","_blank");
-  if(!popup){
-    $("telegram-status").textContent="Разреши всплывающие окна для сайта и попробуй снова.";
-    return;
-  }
   button.disabled=true;
   $("telegram-status").textContent="Создаём ссылку для подключения…";
   const res=await api("telegram_bind_start",{name:auth.name,pin:auth.pin});
   button.disabled=false;
-  if(chatAuth!==auth){
-    popup.close();
-    return;
-  }
+  if(chatAuth!==auth)return;
   if(!res.ok){
-    popup.close();
     $("telegram-status").textContent=res.error||"Не удалось создать ссылку.";
     return;
   }
-  popup.location=res.link;
-  $("telegram-status").textContent="Откройте бота в Telegram и нажмите Start.";
+  if(!res.start_command){
+    $("telegram-status").textContent="Сервер не вернул команду подключения. Обнови debug/api.php на хостинге.";
+    return;
+  }
+  $("telegram-start-command").value=res.start_command;
+  $("telegram-bind-help").textContent="Скопируй команду, открой бота и отправь её одним сообщением.";
+  $("telegram-bind-help").classList.remove("hide");
+  $("telegram-start-command").classList.remove("hide");
+  $("telegram-copy-command").classList.remove("hide");
+  $("telegram-open-bot").classList.remove("hide");
+  $("telegram-status").textContent="Команда готова. Отправь её боту в Telegram.";
+}
+
+async function copyTelegramStartCommand(){
+  const command=$("telegram-start-command").value;
+  try{
+    await navigator.clipboard.writeText(command);
+    $("telegram-status").textContent="Команда скопирована. Вставь её в чат с ботом и отправь.";
+  }catch(error){
+    $("telegram-start-command").focus();
+    $("telegram-start-command").select();
+    $("telegram-status").textContent="Не удалось скопировать автоматически. Выдели команду и нажми Ctrl+C.";
+  }
 }
 
 async function unlinkTelegram(){

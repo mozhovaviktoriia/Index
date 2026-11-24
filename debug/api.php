@@ -506,7 +506,11 @@ try {
             $pdo->prepare('REPLACE INTO telegram_bind_tokens (participant_id, token_hash, expires_at)
                 VALUES (?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 15 MINUTE))')
                 ->execute([(int)$participant['id'], hash('sha256', $bindToken)]);
-            out(['ok' => true, 'link' => 'https://t.me/'.$username.'?start='.$bindToken]);
+            out([
+                'ok' => true,
+                'link' => 'https://t.me/'.$username.'?start='.$bindToken,
+                'start_command' => '/start '.$bindToken,
+            ]);
             break;
 
         case 'telegram_unlink':

@@ -186,50 +186,40 @@ function chat_messages(PDO $pdo, array $pair, int $participantId): array
     }, array_reverse($st->fetchAll()));
 }
 
-function telegram_api(string $method, array $payload): array
+function create_telegram_notification(PDO $pdo, int $recipientId, bool $fromSanta): ?array
 {
-    $token = defined('TELEGRAM_BOT_TOKEN') ? (string)constant('TELEGRAM_BOT_TOKEN') : '';
-    if ($token === '') return ['ok' => false, 'error' => 'В debug/config.php не задан TELEGRAM_BOT_TOKEN.'];
-    $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
-    $ch = curl_init('https://api.telegram.org/bot'.$token.'/'.$method);
-    if ($ch === false) {
-        return ['ok' => false, 'error' => 'На хостинге не удалось запустить cURL.'];
-    }
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $body,
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_TIMEOUT => 8,
-    ]);
-    $response = curl_exec($ch);
-    $curlError = curl_error($ch);
-    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    if (!is_string($response)) {
-        return ['ok' => false, 'error' => 'Ошибка соединения с Telegram: '.$curlError];
-    }
-    $result = json_decode($response, true);
-    if (!is_array($result)) {
-        return ['ok' => false, 'error' => 'Telegram вернул некорректный ответ (HTTP '.$httpCode.').'];
-    }
-    return [
-        'ok' => ($result['ok'] ?? false) === true,
-        'error' => (string)($result['description'] ?? 'Telegram не сообщил причину отказа.'),
-    ];
-}
+    $relaySecret = defined('TELEGRAM_RELAY_SECRET') ? (string)constant('TELEGRAM_RELAY_SECRET') : '';
+    if ($relaySecret === '') return null;
 
-function send_chat_notification(PDO $pdo, int $recipientId, bool $fromSanta): void
-{
+    $setting = $pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ?');
+    $setting->execute(['telegram_worker_url']);
+    $workerUrl = rtrim((string)$setting->fetchColumn(), '/');
+    if ($workerUrl === '') return null;
+
     $st = $pdo->prepare('SELECT chat_id FROM telegram_bindings WHERE participant_id = ?');
     $st->execute([$recipientId]);
     $chatId = $st->fetchColumn();
-    if ($chatId === false) return;
+    if ($chatId === false) return null;
+
     $text = $fromSanta
         ? '🎁 Вам написал Тайный Санта. Откройте чат на сайте Тайного Санты.'
         : '🎁 Вам написал ваш получатель. Откройте чат на сайте Тайного Санты.';
-    telegram_api('sendMessage', ['chat_id' => (string)$chatId, 'text' => $text]);
+    $ticket = json_encode([
+        'chat_id' => (string)$chatId,
+        'text' => $text,
+        'expires_at' => time() + 300,
+        'nonce' => bin2hex(random_bytes(16)),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (!is_string($ticket)) {
+        throw new RuntimeException('Не удалось создать билет Telegram-уведомления');
+    }
+
+    $encodedTicket = rtrim(strtr(base64_encode($ticket), '+/', '-_'), '=');
+    return [
+        'worker_url' => $workerUrl,
+        'ticket' => $encodedTicket,
+        'signature' => hash_hmac('sha256', $encodedTicket, $relaySecret),
+    ];
 }
 
 function is_drawn(PDO $pdo): bool
@@ -509,8 +499,7 @@ try {
         case 'telegram_bind_start':
             $participant = require_participant($pdo, $in);
             $username = defined('TELEGRAM_BOT_USERNAME') ? trim((string)constant('TELEGRAM_BOT_USERNAME'), '@') : '';
-            $token = defined('TELEGRAM_BOT_TOKEN') ? (string)constant('TELEGRAM_BOT_TOKEN') : '';
-            if ($username === '' || $token === '') {
+            if ($username === '') {
                 fail('Telegram-бот ещё не настроен на сервере.', 503);
             }
             $bindToken = bin2hex(random_bytes(24));
@@ -560,12 +549,17 @@ try {
             $recipientId = (int)$participant['id'] === (int)$pair['giver_id']
                 ? (int)$pair['target_id']
                 : (int)$pair['giver_id'];
-            send_chat_notification($pdo, $recipientId, (int)$participant['id'] === (int)$pair['giver_id']);
+            $notification = create_telegram_notification(
+                $pdo,
+                $recipientId,
+                (int)$participant['id'] === (int)$pair['giver_id']
+            );
             out([
                 'ok' => true,
                 'role' => $direction,
                 'direction' => $direction,
                 'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
+                'notification' => $notification,
             ]);
             break;
 
@@ -733,26 +727,28 @@ try {
             out(['ok' => true, 'timer_mode' => $mode]);
             break;
 
-        case 'admin_set_telegram_webhook':
+        case 'admin_set_telegram_worker':
             require_admin($pdo, $in);
             $url = trim((string)($in['url'] ?? ''));
-            $token = defined('TELEGRAM_BOT_TOKEN') ? (string)constant('TELEGRAM_BOT_TOKEN') : '';
-            $secret = defined('TELEGRAM_WEBHOOK_SECRET') ? (string)constant('TELEGRAM_WEBHOOK_SECRET') : '';
-            if ($token === '' || $secret === '') {
-                fail('Сначала добавь TELEGRAM_BOT_TOKEN и TELEGRAM_WEBHOOK_SECRET в config.php', 503);
+            $relaySecret = defined('TELEGRAM_RELAY_SECRET') ? (string)constant('TELEGRAM_RELAY_SECRET') : '';
+            if ($relaySecret === '') {
+                fail('Добавь TELEGRAM_RELAY_SECRET в debug/config.php.', 503);
             }
-            if (!preg_match('/^https:\/\/[^\s]+$/i', $url)) {
-                fail('Укажи HTTPS-ссылку на telegram_bot.php');
+            $parts = parse_url($url);
+            if (
+                !is_array($parts)
+                || strtolower((string)($parts['scheme'] ?? '')) !== 'https'
+                || empty($parts['host'])
+                || isset($parts['query'])
+                || isset($parts['fragment'])
+                || (isset($parts['path']) && !in_array($parts['path'], ['', '/'], true))
+            ) {
+                fail('Укажи базовый HTTPS-адрес Cloudflare Worker без пути.');
             }
-            $telegramResult = telegram_api('setWebhook', [
-                'url' => $url,
-                'secret_token' => $secret,
-                'drop_pending_updates' => true,
-            ]);
-            if (!$telegramResult['ok']) {
-                fail('Telegram отклонил webhook: '.$telegramResult['error'], 502);
-            }
-            out(['ok' => true]);
+            $workerUrl = rtrim($url, '/');
+            $pdo->prepare('REPLACE INTO app_settings (setting_key, setting_value) VALUES (?, ?)')
+                ->execute(['telegram_worker_url', $workerUrl]);
+            out(['ok' => true, 'worker_url' => $workerUrl]);
             break;
 
         case 'admin_delete':

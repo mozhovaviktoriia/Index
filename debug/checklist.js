@@ -168,16 +168,25 @@ async function loadTelegramStatus(){
 async function bindTelegram(){
   if(!chatAuth)return;
   const auth=chatAuth,button=$("telegram-bind");
+  const popup=window.open("about:blank","_blank");
+  if(!popup){
+    $("telegram-status").textContent="Разреши всплывающие окна для сайта и попробуй снова.";
+    return;
+  }
   button.disabled=true;
   $("telegram-status").textContent="Создаём ссылку для подключения…";
   const res=await api("telegram_bind_start",{name:auth.name,pin:auth.pin});
   button.disabled=false;
-  if(chatAuth!==auth)return;
+  if(chatAuth!==auth){
+    popup.close();
+    return;
+  }
   if(!res.ok){
+    popup.close();
     $("telegram-status").textContent=res.error||"Не удалось создать ссылку.";
     return;
   }
-  window.open(res.link,"_blank","noopener,noreferrer");
+  popup.location=res.link;
   $("telegram-status").textContent="Откройте бота в Telegram и нажмите Start.";
 }
 
@@ -260,9 +269,28 @@ async function sendChatMessage(){
   input.value="";
   chatAuth.role=res.role;
   renderChatMessages(res.messages||[]);
-  status.textContent="";
+  if(res.notification){
+    status.textContent="Сообщение отправлено. Отправляем уведомление в Telegram…";
+    try{
+      const response=await fetch(res.notification.worker_url+"/notify",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ticket:res.notification.ticket,signature:res.notification.signature})
+      });
+      const result=await response.json();
+      if(!response.ok||!result.ok)throw new Error(result.error||"Worker вернул ошибку.");
+      status.textContent="Сообщение отправлено, уведомление доставлено в Telegram.";
+    }catch(error){
+      status.textContent="Сообщение сохранено в чате, но Telegram-уведомление не отправлено: "+error.message;
+    }
+  }else{
+    status.textContent="";
+  }
 }
 
 setInterval(()=>{
-  if(chatAuth&&!document.hidden&&!$("v-list").classList.contains("hide"))loadChat();
+  if(chatAuth&&!document.hidden&&!$("v-list").classList.contains("hide")){
+    loadChat();
+    loadTelegramStatus();
+  }
 },10000);

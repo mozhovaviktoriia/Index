@@ -173,21 +173,44 @@ $("timer-mode").onchange=async()=>{
   $("timer-status").textContent=mode==="gift"?"Показан таймер до отправки подарков 25 декабря 2026 года.":"Показан таймер заполнения чек-листов.";
 };
 
-$("telegram-webhook-save").onclick=async()=>{
-  const button=$("telegram-webhook-save"),url=$("telegram-webhook-url").value.trim();
-  if(!/^https:\/\/[^\s]+$/i.test(url)){
-    $("telegram-webhook-status").textContent="Укажи HTTPS-ссылку на telegram_bot.php.";
+$("telegram-worker-save").onclick=async()=>{
+  const button=$("telegram-worker-save");
+  const url=$("telegram-worker-url").value.trim().replace(/\/+$/,"");
+  const adminSecret=$("telegram-worker-admin-secret").value;
+  if(!/^https:\/\/[^/\s]+$/i.test(url)){
+    $("telegram-worker-status").textContent="Укажи базовый HTTPS-адрес Worker без пути.";
+    return;
+  }
+  if(!adminSecret){
+    $("telegram-worker-status").textContent="Введи секрет настройки Worker.";
     return;
   }
   button.disabled=true;
-  $("telegram-webhook-status").textContent="Подключаем webhook…";
-  const res=await api("admin_set_telegram_webhook",{password:orgPw,url:url});
-  button.disabled=false;
-  if(!res.ok){
-    $("telegram-webhook-status").textContent=res.error||"Не удалось подключить Telegram.";
+  $("telegram-worker-status").textContent="Сохраняем адрес Worker…";
+  const saved=await api("admin_set_telegram_worker",{password:orgPw,url:url});
+  if(!saved.ok){
+    button.disabled=false;
+    $("telegram-worker-status").textContent=saved.error||"Не удалось сохранить адрес Worker.";
     return;
   }
-  $("telegram-webhook-status").textContent="Webhook подключён.";
+  $("telegram-worker-status").textContent="Регистрируем Telegram webhook…";
+  try{
+    const response=await fetch(url+"/setup",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({admin_secret:adminSecret})
+    });
+    const result=await response.json();
+    if(!response.ok||!result.ok){
+      $("telegram-worker-status").textContent=result.error||"Worker не смог подключить webhook.";
+      return;
+    }
+    $("telegram-worker-status").textContent="Готово! Worker подключён, webhook зарегистрирован.";
+  }catch(error){
+    $("telegram-worker-status").textContent="Не удалось связаться с Worker: "+error.message;
+  }finally{
+    button.disabled=false;
+  }
 };
 
 async function sendOrganizerNotice(){

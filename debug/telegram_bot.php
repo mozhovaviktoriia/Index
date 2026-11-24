@@ -32,12 +32,12 @@ if ($chatId === '' || !preg_match('/^\/start(?:\s+(.+))?$/u', trim($text), $matc
     exit;
 }
 $bindToken = trim((string)($matches[1] ?? ''));
-$token = defined('TELEGRAM_BOT_TOKEN') ? (string)constant('TELEGRAM_BOT_TOKEN') : '';
-if ($bindToken === '' || $token === '') {
+if ($bindToken === '') {
     echo json_encode(['ok' => true]);
     exit;
 }
 
+$linked = false;
 try {
     $pdo = new PDO(
         'mysql:host='.DB_HOST.';dbname='.DB_NAME.';charset=utf8mb4',
@@ -58,24 +58,17 @@ try {
             VALUES (?, ?, ?)')->execute([$participantId, $chatId, $username]);
         $pdo->prepare('DELETE FROM telegram_bind_tokens WHERE participant_id = ?')->execute([$participantId]);
         $pdo->commit();
-
-        $ch = curl_init('https://api.telegram.org/bot'.$token.'/sendMessage');
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode([
-                'chat_id' => $chatId,
-                'text' => 'Готово! Теперь сюда придут уведомления о новых сообщениях в Тайном Санте.',
-            ], JSON_UNESCAPED_UNICODE),
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_RETURNTRANSFER => true,
-        ]);
-        curl_exec($ch);
-        curl_close($ch);
+        $linked = true;
     } else {
         $pdo->commit();
     }
 } catch (Throwable $e) {
-    if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    http_response_code(500);
+    echo json_encode(['ok' => false]);
+    exit;
 }
 
-echo json_encode(['ok' => true]);
+echo json_encode(['ok' => true, 'linked' => $linked]);

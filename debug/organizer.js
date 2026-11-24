@@ -205,7 +205,10 @@ $("telegram-worker-save").onclick=async()=>{
       $("telegram-worker-status").textContent=result.error||"Worker не смог подключить webhook.";
       return;
     }
-    $("telegram-worker-status").textContent="Готово! Worker подключён, webhook зарегистрирован.";
+    const webhookInfo=result.webhook_info||{};
+    $("telegram-worker-status").textContent=webhookInfo.last_error_message
+      ? "Webhook зарегистрирован, но Telegram сообщает: "+webhookInfo.last_error_message
+      : "Готово! Worker подключён. Ожидающих обновлений Telegram: "+(webhookInfo.pending_update_count||0)+".";
   }catch(error){
     $("telegram-worker-status").textContent="Не удалось связаться с Worker: "+error.message;
   }finally{

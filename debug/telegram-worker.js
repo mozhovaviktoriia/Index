@@ -69,11 +69,12 @@ async function handleSetup(request, env, origin) {
   const result = await telegramRequest(env, "setWebhook", {
     url: env.TELEGRAM_WEBHOOK_URL,
     secret_token: env.TELEGRAM_WEBHOOK_SECRET,
-    allowed_updates: ["message"],
-    drop_pending_updates: true
+    allowed_updates: ["message"]
   });
   if (!result.ok) return jsonResponse({ ok: false, error: result.error }, 502, origin);
-  return jsonResponse({ ok: true }, 200, origin);
+  const info = await telegramRequest(env, "getWebhookInfo", {});
+  if (!info.ok) return jsonResponse({ ok: false, error: info.error }, 502, origin);
+  return jsonResponse({ ok: true, webhook_info: info.result }, 200, origin);
 }
 
 async function handleNotification(request, env, origin) {

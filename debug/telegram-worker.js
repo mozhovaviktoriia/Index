@@ -79,7 +79,7 @@ async function handleSetup(request, env, origin) {
   return jsonResponse({
     ok: true,
     bot: { username: bot.result.result.username || "" },
-    webhook_info: info.result
+    webhook_info: info.result.result
   }, 200, origin);
 }
 

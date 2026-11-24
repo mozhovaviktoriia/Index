@@ -38,17 +38,17 @@ function renderDeadline(deadline,drawn,mode){
 function updateDeadline(){
   if(timerMode==="gift"){
     const date=new Date(giftDeadline);
-    setDeadlineText("deadline-date","🎅 САНТА НА СВЯЗИ:");
+    setDeadlineText("deadline-date","🎁 ОТДЕЛ ПОДАРКОВ:");
     const left=Math.floor((date.getTime()-Date.now())/1000);
     if(left<=0){
       setDeadlineText("deadline-countdown","Подарки уже отправлены.");
-      setDeadlineText("deadline-note","Подарки пакуются, эльфы не дремлют, база данных под охраной. Не подведите.");
+      setDeadlineText("deadline-note","Санта пакует, эльфы ведут учет. С наступающим! 🎄");
       return;
     }
     const days=Math.floor(left/86400),hours=Math.floor(left%86400/3600),minutes=Math.floor(left%3600/60),seconds=left%60;
     const pad=n=>String(n).padStart(2,"0");
-    setDeadlineText("deadline-countdown","До отправки подарков осталось "+days+" "+pluralDays(days)+" "+pad(hours)+":"+pad(minutes)+":"+pad(seconds)+".");
-    setDeadlineText("deadline-note","Подарки пакуются, эльфы не дремлют, база данных под охраной. Не подведите.");
+    setDeadlineText("deadline-countdown","До отправки осталось "+days+" "+pluralDays(days)+" "+pad(hours)+":"+pad(minutes)+":"+pad(seconds)+".");
+    setDeadlineText("deadline-note","Санта пакует, эльфы ведут учет. С наступающим! 🎄");
     return;
   }
   if(!eventDeadline)return;

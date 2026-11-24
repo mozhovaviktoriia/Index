@@ -1,13 +1,12 @@
 <?php
 declare(strict_types=1);
 
-// Use a dedicated test database. Do not copy production credentials here.
-const DB_HOST = 'sql310.infinityfree.com';
-const DB_NAME = 'if0_43418491_debug';
-const DB_USER = 'if0_43418491';
-const DB_PASS = 'jCZQE5cUODTGxYB';
-const ORG_PASSWORD = '13062005v';
+// Use a dedicated test database. Replace placeholders locally; never commit config.php.
+const DB_HOST = 'YOUR_DEBUG_DB_HOST';
+const DB_NAME = 'YOUR_DEBUG_DB_NAME';
+const DB_USER = 'YOUR_DEBUG_DB_USER';
+const DB_PASS = 'PUT_DB_PASSWORD_HERE';
+const ORG_PASSWORD = 'CHOOSE_ORGANIZER_PASSWORD';
 
-const TELEGRAM_BOT_TOKEN = '9177537707:AAHNpCJoTYXmkOBnPiINpfgDkLxblguK46k';
-const TELEGRAM_BOT_USERNAME = 'santa_nv2026_bot';
-const TELEGRAM_WEBHOOK_SECRET = 'SantaNv2026_X7k9Lm4p2R8v6Qz1W5h3';
+const TELEGRAM_GROUP_CHAT_ID = '';
+const TELEGRAM_RELAY_SECRET = '';

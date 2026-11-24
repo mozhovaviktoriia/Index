@@ -21,7 +21,15 @@ function renderOrganizerNotices(notices){
 function renderOrg(res){
   orgDrawn=!!res.drawn;
   $("count").textContent="Участников: "+res.participants.length;
-  $("chips").innerHTML=res.participants.map(p=>'<span class="chip">'+esc(p.name)+'<button class="x" data-r="'+(+p.id)+'" aria-label="Удалить">✕</button></span>').join("");
+  $("chips").innerHTML=res.participants.map(p=>{
+    const username=String(p.telegram_username||"");
+    const hasUsername=username!=="";
+    return '<div class="telegram-participant-row"><div class="telegram-participant-heading"><strong>'+esc(p.name)+'</strong><button class="x" data-r="'+(+p.id)+'" aria-label="Удалить">✕</button></div><div class="telegram-username-form"><label>Telegram-ник<input type="text" maxlength="33" placeholder="@username" value="'+esc(username)+'"></label><button type="button" class="alt" data-telegram-save="'+(+p.id)+'">Сохранить</button></div><p class="hint telegram-username-warning'+(hasUsername?" hide":"")+'">Ник не задан: уведомление в группе будет содержать имя без тега.</p><p class="sub telegram-username-status" role="status" aria-live="polite"></p></div>';
+  }).join("");
+  $("telegram-worker-url").value=res.telegram_worker_url||"";
+  $("telegram-worker-status").textContent=res.telegram_worker_url
+    ? "Адрес Worker сохранён. Для уведомлений используется /notify, webhook Telegram не нужен."
+    : "Сохрани базовый URL Cloudflare Worker для отправки групповых уведомлений.";
   const recipient=$("notice-recipient");
   recipient.innerHTML='<option value="">Выбери участника</option>'+res.participants.map(p=>'<option value="'+(+p.id)+'">'+esc(p.name)+'</option>').join("");
   recipient.disabled=!res.participants.length;
@@ -96,8 +104,12 @@ async function doDraw(){
     showErr(res,false);
     return;
   }
+  const notificationResult=await sendTelegramNotification(res.notification);
   $("pairs").innerHTML='<div class="card"><h2>Жеребьёвка проведена</h2><p>Участников: '+(+res.count)+'. Теперь каждый может открыть сайт и нажать «Узнать, для кого я Санта».</p></div>';
-  modal("Жеребьёвка проведена!",'<ol class="steps"><li>Напиши участникам, что всё готово.</li><li>Пусть откроют сайт и нажмут «Узнать, для кого я Санта».</li><li>Имя и секретное слово — как в анкете.</li></ol>');
+  const notificationStatus=notificationResult.ok
+    ? "<p>Уведомление отправлено в Telegram-группу.</p>"
+    : "<p>Жеребьёвка проведена, но уведомление в Telegram-группу не доставлено: "+esc(notificationResult.error)+"</p>";
+  modal("Жеребьёвка проведена!",'<ol class="steps"><li>Напиши участникам, что всё готово.</li><li>Пусть откроют сайт и нажмут «Узнать, для кого я Санта».</li><li>Имя и секретное слово — как в анкете.</li></ol>'+notificationStatus);
   loadOrg();
 }
 
@@ -176,13 +188,8 @@ $("timer-mode").onchange=async()=>{
 $("telegram-worker-save").onclick=async()=>{
   const button=$("telegram-worker-save");
   const url=$("telegram-worker-url").value.trim().replace(/\/+$/,"");
-  const adminSecret=$("telegram-worker-admin-secret").value;
   if(!/^https:\/\/[^/\s]+$/i.test(url)){
     $("telegram-worker-status").textContent="Укажи базовый HTTPS-адрес Worker без пути.";
-    return;
-  }
-  if(!adminSecret){
-    $("telegram-worker-status").textContent="Введи секрет настройки Worker.";
     return;
   }
   button.disabled=true;
@@ -193,29 +200,9 @@ $("telegram-worker-save").onclick=async()=>{
     $("telegram-worker-status").textContent=saved.error||"Не удалось сохранить адрес Worker.";
     return;
   }
-  $("telegram-worker-status").textContent="Регистрируем Telegram webhook…";
-  try{
-    const response=await fetch(url+"/setup",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({admin_secret:adminSecret})
-    });
-    const result=await response.json();
-    if(!response.ok||!result.ok){
-      $("telegram-worker-status").textContent=result.error||"Worker не смог подключить webhook.";
-      return;
-    }
-    const webhookInfo=result.webhook_info||{};
-    const botUsername=result.bot&&result.bot.username?"@"+result.bot.username:"имя не получено";
-    const webhookUrl=webhookInfo.url||"URL не получен";
-    $("telegram-worker-status").textContent=webhookInfo.last_error_message
-      ? "Webhook для "+botUsername+" зарегистрирован на "+webhookUrl+", но Telegram сообщает: "+webhookInfo.last_error_message
-      : "Готово! Worker подключён к "+botUsername+". Callback: "+webhookUrl+". Ожидающих обновлений Telegram: "+(webhookInfo.pending_update_count||0)+".";
-  }catch(error){
-    $("telegram-worker-status").textContent="Не удалось связаться с Worker: "+error.message;
-  }finally{
-    button.disabled=false;
-  }
+  button.disabled=false;
+  $("telegram-worker-url").value=saved.worker_url||url;
+  $("telegram-worker-status").textContent="Адрес Worker сохранён. Для уведомлений используется /notify; webhook Telegram не нужен.";
 };
 
 async function sendOrganizerNotice(){
@@ -243,8 +230,11 @@ async function sendOrganizerNotice(){
     }
     return;
   }
+  const notificationResult=await sendTelegramNotification(res.notification);
   $("notice-message").value="";
-  $("notice-status").textContent="Сообщение отправлено для "+res.recipient_name+". Оно появится после ввода имени и секретного слова.";
+  $("notice-status").textContent=notificationResult.ok
+    ? "Сообщение отправлено для "+res.recipient_name+". Оно появится после ввода имени и секретного слова. Уведомление отправлено в Telegram-группу."
+    : "Сообщение сохранено для "+res.recipient_name+", но уведомление в Telegram-группу не доставлено: "+notificationResult.error;
   await loadOrg();
 }
 
@@ -306,10 +296,33 @@ function confirmOrganizerNoticeCancel(id,recipientName){
 }
 
 // Удаление участника
-$("chips").addEventListener("click",e=>{
+$("chips").addEventListener("click",async e=>{
+  const saveButton=e.target.closest("button[data-telegram-save]");
+  if(saveButton){
+    const row=saveButton.closest(".telegram-participant-row");
+    const input=row.querySelector("input");
+    const status=row.querySelector(".telegram-username-status");
+    saveButton.disabled=true;
+    status.textContent="Сохраняю ник…";
+    const res=await api("admin_set_telegram_username",{
+      password:orgPw,
+      id:+saveButton.dataset.telegramSave,
+      telegram_username:input.value
+    });
+    saveButton.disabled=false;
+    if(!res.ok){
+      status.textContent=res.error||"Не удалось сохранить Telegram-ник.";
+      return;
+    }
+    input.value=res.telegram_username||"";
+    const missing=!input.value;
+    row.querySelector(".telegram-username-warning").classList.toggle("hide",!missing);
+    status.textContent=missing?"Telegram-ник удалён.":"Telegram-ник сохранён.";
+    return;
+  }
   const b=e.target.closest("button[data-r]");
   if(!b)return;
-  const name=b.parentElement.firstChild.textContent;
+  const name=b.closest(".telegram-participant-row").querySelector("strong").textContent;
   const d=$("dlg");
   d.innerHTML='<h2>Удалить участника?</h2><p>'+esc(name)+' пропадёт из списка. Пусть заполнит анкету заново.</p><p class="sub">Жеребьёвка сбросится, её нужно будет провести заново.</p><div class="row"><button id="rmok">Удалить</button><button class="alt" id="rmno">Отмена</button></div>';
   $("rmno").onclick=()=>d.close();

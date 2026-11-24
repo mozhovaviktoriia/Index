@@ -186,24 +186,24 @@ function chat_messages(PDO $pdo, array $pair, int $participantId): array
     }, array_reverse($st->fetchAll()));
 }
 
-function create_telegram_notification(PDO $pdo, int $recipientId, bool $fromSanta): ?array
+function create_group_telegram_ticket(PDO $pdo, string $text): array
 {
+    $chatId = defined('TELEGRAM_GROUP_CHAT_ID') ? trim((string)constant('TELEGRAM_GROUP_CHAT_ID')) : '';
     $relaySecret = defined('TELEGRAM_RELAY_SECRET') ? (string)constant('TELEGRAM_RELAY_SECRET') : '';
-    if ($relaySecret === '') return null;
+    if ($chatId === '' || !preg_match('/\A-?\d+\z/', $chatId)) {
+        return ['ok' => false, 'error' => 'Не настроен корректный TELEGRAM_GROUP_CHAT_ID в debug/config.php.'];
+    }
+    if ($relaySecret === '') {
+        return ['ok' => false, 'error' => 'Не настроен TELEGRAM_RELAY_SECRET в debug/config.php.'];
+    }
 
     $setting = $pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ?');
     $setting->execute(['telegram_worker_url']);
     $workerUrl = rtrim((string)$setting->fetchColumn(), '/');
-    if ($workerUrl === '') return null;
+    if (!preg_match('~\Ahttps://[^/\s]+\z~i', $workerUrl)) {
+        return ['ok' => false, 'error' => 'Сначала сохрани базовый HTTPS-адрес Worker в админке.'];
+    }
 
-    $st = $pdo->prepare('SELECT chat_id FROM telegram_bindings WHERE participant_id = ?');
-    $st->execute([$recipientId]);
-    $chatId = $st->fetchColumn();
-    if ($chatId === false) return null;
-
-    $text = $fromSanta
-        ? '🎁 Вам написал Тайный Санта. Откройте чат на сайте Тайного Санты.'
-        : '🎁 Вам написал ваш получатель. Откройте чат на сайте Тайного Санты.';
     $ticket = json_encode([
         'chat_id' => (string)$chatId,
         'text' => $text,
@@ -211,15 +211,64 @@ function create_telegram_notification(PDO $pdo, int $recipientId, bool $fromSant
         'nonce' => bin2hex(random_bytes(16)),
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     if (!is_string($ticket)) {
-        throw new RuntimeException('Не удалось создать билет Telegram-уведомления');
+        return ['ok' => false, 'error' => 'Не удалось создать билет Telegram-уведомления.'];
     }
 
     $encodedTicket = rtrim(strtr(base64_encode($ticket), '+/', '-_'), '=');
     return [
+        'ok' => true,
         'worker_url' => $workerUrl,
         'ticket' => $encodedTicket,
         'signature' => hash_hmac('sha256', $encodedTicket, $relaySecret),
     ];
+}
+
+function create_telegram_notification(PDO $pdo, int $recipientId, string $message): array
+{
+    $st = $pdo->prepare('SELECT name, telegram_username FROM participants WHERE id = ?');
+    $st->execute([$recipientId]);
+    $recipient = $st->fetch();
+    if (!$recipient) {
+        return ['ok' => false, 'error' => 'Не удалось найти получателя Telegram-уведомления.'];
+    }
+
+    $username = trim((string)($recipient['telegram_username'] ?? ''));
+    if (isset($username[0]) && $username[0] === '@') {
+        $username = substr($username, 1);
+    }
+    $label = $username !== '' ? '@' . $username : (string)$recipient['name'];
+    $notification = create_group_telegram_ticket(
+        $pdo,
+        $label . ', ' . $message
+    );
+    $notification['missing_username'] = $username === '';
+    return $notification;
+}
+
+function create_draw_telegram_notification(PDO $pdo): array
+{
+    $participants = $pdo->query('SELECT name, telegram_username FROM participants ORDER BY id')->fetchAll();
+    $labels = [];
+    $missingUsernames = [];
+    foreach ($participants as $participant) {
+        $username = trim((string)($participant['telegram_username'] ?? ''));
+        if (isset($username[0]) && $username[0] === '@') {
+            $username = substr($username, 1);
+        }
+        if ($username === '') {
+            $labels[] = (string)$participant['name'];
+            $missingUsernames[] = (string)$participant['name'];
+        } else {
+            $labels[] = '@' . $username;
+        }
+    }
+
+    $notification = create_group_telegram_ticket(
+        $pdo,
+        'Жеребьёвка проведена! Зайдите на сайт, узнайте, кому дарить. ' . implode(' ', $labels)
+    );
+    $notification['missing_usernames'] = $missingUsernames;
+    return $notification;
 }
 
 function is_drawn(PDO $pdo): bool
@@ -307,11 +356,15 @@ try {
     $pdo->exec('CREATE TABLE IF NOT EXISTS participants (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(60) NOT NULL,
+        telegram_username VARCHAR(32) NULL DEFAULT NULL,
         pin_hash VARCHAR(255) NOT NULL,
         data MEDIUMTEXT NOT NULL,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uq_name (name)
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+    if (!$pdo->query("SHOW COLUMNS FROM participants LIKE 'telegram_username'")->fetch()) {
+        $pdo->exec('ALTER TABLE participants ADD telegram_username VARCHAR(32) NULL DEFAULT NULL');
+    }
 
     $pdo->exec('CREATE TABLE IF NOT EXISTS pairs (
         giver_id INT NOT NULL PRIMARY KEY,
@@ -556,7 +609,7 @@ try {
             $notification = create_telegram_notification(
                 $pdo,
                 $recipientId,
-                (int)$participant['id'] === (int)$pair['giver_id']
+                'в тайном Санте есть новое сообщение. Зайди на сайт.'
             );
             out([
                 'ok' => true,
@@ -624,11 +677,14 @@ try {
 
         case 'admin_list':
             require_admin($pdo, $in);
-            $rows = $pdo->query('SELECT id, name FROM participants ORDER BY id')->fetchAll();
+            $rows = $pdo->query('SELECT id, name, telegram_username FROM participants ORDER BY id')->fetchAll();
+            $workerUrl = $pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ?');
+            $workerUrl->execute(['telegram_worker_url']);
             out([
                 'ok' => true,
                 'participants' => $rows,
                 'notices' => pending_organizer_notices($pdo),
+                'telegram_worker_url' => (string)$workerUrl->fetchColumn(),
                 'drawn' => is_drawn($pdo),
                 'deadline' => get_deadline($pdo),
                 'timer_mode' => get_timer_mode($pdo),
@@ -653,7 +709,38 @@ try {
             }
             $pdo->prepare('INSERT INTO organizer_notices (recipient_id, message) VALUES (?, ?)')
                 ->execute([$recipientId, $message]);
-            out(['ok' => true, 'recipient_name' => (string)$recipientName]);
+            out([
+                'ok' => true,
+                'recipient_name' => (string)$recipientName,
+                'notification' => create_telegram_notification(
+                    $pdo,
+                    $recipientId,
+                    'тебе пришло письмо от организатора. Зайди на сайт.'
+                ),
+            ]);
+            break;
+
+        case 'admin_set_telegram_username':
+            require_admin($pdo, $in);
+            $participantId = (int)($in['id'] ?? 0);
+            $username = trim((string)($in['telegram_username'] ?? ''));
+            if ($participantId < 1) {
+                fail('Не удалось определить участника');
+            }
+            if (isset($username[0]) && $username[0] === '@') {
+                $username = substr($username, 1);
+            }
+            if ($username !== '' && !preg_match('/\A[A-Za-z0-9_]{5,32}\z/', $username)) {
+                fail('Telegram-ник должен содержать 5–32 латинских символа, цифры или подчёркивания');
+            }
+            $st = $pdo->prepare('SELECT id FROM participants WHERE id = ?');
+            $st->execute([$participantId]);
+            if (!$st->fetchColumn()) {
+                fail('Участник не найден. Обнови список и попробуй снова.', 404);
+            }
+            $pdo->prepare('UPDATE participants SET telegram_username = ? WHERE id = ?')
+                ->execute([$username !== '' ? $username : null, $participantId]);
+            out(['ok' => true, 'telegram_username' => $username]);
             break;
 
         case 'admin_notice_edit':
@@ -793,7 +880,11 @@ try {
             $pdo->prepare('UPDATE app_settings SET setting_value = ? WHERE setting_key = ?')
                 ->execute(['1', 'checklist_locked']);
             $pdo->commit();
-            out(['ok' => true, 'count' => $n]);
+            out([
+                'ok' => true,
+                'count' => $n,
+                'notification' => create_draw_telegram_notification($pdo),
+            ]);
             break;
 
         case 'admin_reset_draw':

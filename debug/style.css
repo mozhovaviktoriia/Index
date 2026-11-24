@@ -678,6 +678,44 @@ dialog h2 {
   box-shadow:0 2px 0 var(--pinkink);
 }
 
+.telegram-participant-list {
+  display:grid;
+  gap:12px;
+  margin-top:12px;
+}
+
+.telegram-participant-row {
+  border:1.5px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+}
+
+.telegram-participant-heading,
+.telegram-username-form {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.telegram-username-form {
+  align-items:flex-end;
+  margin-top:8px;
+}
+
+.telegram-username-form label {
+  flex:1;
+}
+
+.telegram-username-form input {
+  margin-bottom:0;
+}
+
+.telegram-username-warning,
+.telegram-username-status {
+  margin:8px 0 0;
+}
+
 .steps {
   list-style:none;
   counter-reset:s;

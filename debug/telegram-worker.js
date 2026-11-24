@@ -72,9 +72,15 @@ async function handleSetup(request, env, origin) {
     allowed_updates: ["message"]
   });
   if (!result.ok) return jsonResponse({ ok: false, error: result.error }, 502, origin);
+  const bot = await telegramRequest(env, "getMe", {});
+  if (!bot.ok) return jsonResponse({ ok: false, error: bot.error }, 502, origin);
   const info = await telegramRequest(env, "getWebhookInfo", {});
   if (!info.ok) return jsonResponse({ ok: false, error: info.error }, 502, origin);
-  return jsonResponse({ ok: true, webhook_info: info.result }, 200, origin);
+  return jsonResponse({
+    ok: true,
+    bot: { username: bot.result.result.username || "" },
+    webhook_info: info.result
+  }, 200, origin);
 }
 
 async function handleNotification(request, env, origin) {
@@ -120,9 +126,10 @@ async function handleNotification(request, env, origin) {
     await cache.delete(cacheKey);
     return jsonResponse({ ok: false, error: result.error }, 502, origin);
   }
-  await cache.put(cacheKey, new Response("sent"), {
-    expirationTtl: Math.max(1, payload.expires_at - now)
-  });
+  const ttl = Math.max(1, payload.expires_at - now);
+  await cache.put(cacheKey, new Response("sent", {
+    headers: { "Cache-Control": "public, max-age=" + ttl }
+  }));
   return jsonResponse({ ok: true }, 200, origin);
 }
 

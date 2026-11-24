@@ -206,9 +206,11 @@ $("telegram-worker-save").onclick=async()=>{
       return;
     }
     const webhookInfo=result.webhook_info||{};
+    const botUsername=result.bot&&result.bot.username?"@"+result.bot.username:"имя не получено";
+    const webhookUrl=webhookInfo.url||"URL не получен";
     $("telegram-worker-status").textContent=webhookInfo.last_error_message
-      ? "Webhook зарегистрирован, но Telegram сообщает: "+webhookInfo.last_error_message
-      : "Готово! Worker подключён. Ожидающих обновлений Telegram: "+(webhookInfo.pending_update_count||0)+".";
+      ? "Webhook для "+botUsername+" зарегистрирован на "+webhookUrl+", но Telegram сообщает: "+webhookInfo.last_error_message
+      : "Готово! Worker подключён к "+botUsername+". Callback: "+webhookUrl+". Ожидающих обновлений Telegram: "+(webhookInfo.pending_update_count||0)+".";
   }catch(error){
     $("telegram-worker-status").textContent="Не удалось связаться с Worker: "+error.message;
   }finally{

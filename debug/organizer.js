@@ -173,6 +173,23 @@ $("timer-mode").onchange=async()=>{
   $("timer-status").textContent=mode==="gift"?"Показан таймер до отправки подарков 25 декабря 2026 года.":"Показан таймер заполнения чек-листов.";
 };
 
+$("telegram-webhook-save").onclick=async()=>{
+  const button=$("telegram-webhook-save"),url=$("telegram-webhook-url").value.trim();
+  if(!/^https:\/\/[^\s]+$/i.test(url)){
+    $("telegram-webhook-status").textContent="Укажи HTTPS-ссылку на telegram_bot.php.";
+    return;
+  }
+  button.disabled=true;
+  $("telegram-webhook-status").textContent="Подключаем webhook…";
+  const res=await api("admin_set_telegram_webhook",{password:orgPw,url:url});
+  button.disabled=false;
+  if(!res.ok){
+    $("telegram-webhook-status").textContent=res.error||"Не удалось подключить Telegram.";
+    return;
+  }
+  $("telegram-webhook-status").textContent="Webhook подключён.";
+};
+
 async function sendOrganizerNotice(){
   const recipientId=Number($("notice-recipient").value),message=$("notice-message").value.trim();
   if(!recipientId){

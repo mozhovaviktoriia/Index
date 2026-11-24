@@ -186,6 +186,39 @@ function chat_messages(PDO $pdo, array $pair, int $participantId): array
     }, array_reverse($st->fetchAll()));
 }
 
+function telegram_api(string $method, array $payload): bool
+{
+    $token = defined('TELEGRAM_BOT_TOKEN') ? (string)constant('TELEGRAM_BOT_TOKEN') : '';
+    if ($token === '') return false;
+    $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
+    $ch = curl_init('https://api.telegram.org/bot'.$token.'/'.$method);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $body,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => 8,
+    ]);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    if (!is_string($response)) return false;
+    $result = json_decode($response, true);
+    return is_array($result) && (($result['ok'] ?? false) === true);
+}
+
+function send_chat_notification(PDO $pdo, int $recipientId, bool $fromSanta): void
+{
+    $st = $pdo->prepare('SELECT chat_id FROM telegram_bindings WHERE participant_id = ?');
+    $st->execute([$recipientId]);
+    $chatId = $st->fetchColumn();
+    if ($chatId === false) return;
+    $text = $fromSanta
+        ? '🎁 Вам написал Тайный Санта. Откройте чат на сайте Тайного Санты.'
+        : '🎁 Вам написал ваш получатель. Откройте чат на сайте Тайного Санты.';
+    telegram_api('sendMessage', ['chat_id' => (string)$chatId, 'text' => $text]);
+}
+
 function is_drawn(PDO $pdo): bool
 {
     $st = $pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ?');
@@ -295,6 +328,21 @@ try {
     if (!$pdo->query("SHOW COLUMNS FROM chat_messages LIKE 'updated_at'")->fetch()) {
         $pdo->exec('ALTER TABLE chat_messages ADD updated_at TIMESTAMP(6) NULL DEFAULT NULL');
     }
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS telegram_bindings (
+        participant_id INT NOT NULL PRIMARY KEY,
+        chat_id VARCHAR(64) NOT NULL,
+        username VARCHAR(64) NULL DEFAULT NULL,
+        linked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_telegram_chat (chat_id)
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+
+    $pdo->exec('CREATE TABLE IF NOT EXISTS telegram_bind_tokens (
+        participant_id INT NOT NULL PRIMARY KEY,
+        token_hash CHAR(64) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
 
     $pdo->exec('CREATE TABLE IF NOT EXISTS throttle (
         k VARCHAR(100) NOT NULL PRIMARY KEY,
@@ -437,6 +485,37 @@ try {
             out(['ok' => true, 'notice' => claim_pending_organizer_notice($pdo, (int)$participant['id'])]);
             break;
 
+        case 'telegram_status':
+            $participant = require_participant($pdo, $in);
+            $st = $pdo->prepare('SELECT chat_id, username, linked_at FROM telegram_bindings WHERE participant_id = ?');
+            $st->execute([(int)$participant['id']]);
+            $binding = $st->fetch();
+            out(['ok' => true, 'linked' => (bool)$binding, 'username' => $binding ? (string)$binding['username'] : null]);
+            break;
+
+        case 'telegram_bind_start':
+            $participant = require_participant($pdo, $in);
+            $username = defined('TELEGRAM_BOT_USERNAME') ? trim((string)constant('TELEGRAM_BOT_USERNAME'), '@') : '';
+            $token = defined('TELEGRAM_BOT_TOKEN') ? (string)constant('TELEGRAM_BOT_TOKEN') : '';
+            if ($username === '' || $token === '') {
+                fail('Telegram-бот ещё не настроен на сервере.', 503);
+            }
+            $bindToken = bin2hex(random_bytes(24));
+            $pdo->prepare('REPLACE INTO telegram_bind_tokens (participant_id, token_hash, expires_at)
+                VALUES (?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 15 MINUTE))')
+                ->execute([(int)$participant['id'], hash('sha256', $bindToken)]);
+            out(['ok' => true, 'link' => 'https://t.me/'.$username.'?start='.$bindToken]);
+            break;
+
+        case 'telegram_unlink':
+            $participant = require_participant($pdo, $in);
+            $pdo->prepare('DELETE FROM telegram_bindings WHERE participant_id = ?')
+                ->execute([(int)$participant['id']]);
+            $pdo->prepare('DELETE FROM telegram_bind_tokens WHERE participant_id = ?')
+                ->execute([(int)$participant['id']]);
+            out(['ok' => true, 'linked' => false]);
+            break;
+
         case 'chat_load':
             $participant = require_participant($pdo, $in);
             if (!is_drawn($pdo)) {
@@ -465,6 +544,10 @@ try {
             $pair = require_chat_pair($pdo, (int)$participant['id'], $direction);
             $pdo->prepare('INSERT INTO chat_messages (giver_id, target_id, sender_id, message) VALUES (?, ?, ?, ?)')
                 ->execute([$pair['giver_id'], $pair['target_id'], $participant['id'], $message]);
+            $recipientId = (int)$participant['id'] === (int)$pair['giver_id']
+                ? (int)$pair['target_id']
+                : (int)$pair['giver_id'];
+            send_chat_notification($pdo, $recipientId, (int)$participant['id'] === (int)$pair['giver_id']);
             out([
                 'ok' => true,
                 'role' => $direction,
@@ -635,6 +718,28 @@ try {
             $pdo->prepare('REPLACE INTO app_settings (setting_key, setting_value) VALUES (?, ?)')
                 ->execute(['timer_mode', $mode]);
             out(['ok' => true, 'timer_mode' => $mode]);
+            break;
+
+        case 'admin_set_telegram_webhook':
+            require_admin($pdo, $in);
+            $url = trim((string)($in['url'] ?? ''));
+            $token = defined('TELEGRAM_BOT_TOKEN') ? (string)constant('TELEGRAM_BOT_TOKEN') : '';
+            $secret = defined('TELEGRAM_WEBHOOK_SECRET') ? (string)constant('TELEGRAM_WEBHOOK_SECRET') : '';
+            if ($token === '' || $secret === '') {
+                fail('Сначала добавь TELEGRAM_BOT_TOKEN и TELEGRAM_WEBHOOK_SECRET в config.php', 503);
+            }
+            if (!preg_match('/^https:\/\/[^\s]+$/i', $url)) {
+                fail('Укажи HTTPS-ссылку на telegram_bot.php');
+            }
+            $ok = telegram_api('setWebhook', [
+                'url' => $url,
+                'secret_token' => $secret,
+                'drop_pending_updates' => true,
+            ]);
+            if (!$ok) {
+                fail('Telegram не принял webhook. Проверь token и ссылку.', 502);
+            }
+            out(['ok' => true]);
             break;
 
         case 'admin_delete':

@@ -186,12 +186,15 @@ function chat_messages(PDO $pdo, array $pair, int $participantId): array
     }, array_reverse($st->fetchAll()));
 }
 
-function telegram_api(string $method, array $payload): bool
+function telegram_api(string $method, array $payload): array
 {
     $token = defined('TELEGRAM_BOT_TOKEN') ? (string)constant('TELEGRAM_BOT_TOKEN') : '';
-    if ($token === '') return false;
+    if ($token === '') return ['ok' => false, 'error' => 'В debug/config.php не задан TELEGRAM_BOT_TOKEN.'];
     $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
     $ch = curl_init('https://api.telegram.org/bot'.$token.'/'.$method);
+    if ($ch === false) {
+        return ['ok' => false, 'error' => 'На хостинге не удалось запустить cURL.'];
+    }
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => $body,
@@ -201,10 +204,20 @@ function telegram_api(string $method, array $payload): bool
         CURLOPT_TIMEOUT => 8,
     ]);
     $response = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    if (!is_string($response)) return false;
+    if (!is_string($response)) {
+        return ['ok' => false, 'error' => 'Ошибка соединения с Telegram: '.$curlError];
+    }
     $result = json_decode($response, true);
-    return is_array($result) && (($result['ok'] ?? false) === true);
+    if (!is_array($result)) {
+        return ['ok' => false, 'error' => 'Telegram вернул некорректный ответ (HTTP '.$httpCode.').'];
+    }
+    return [
+        'ok' => ($result['ok'] ?? false) === true,
+        'error' => (string)($result['description'] ?? 'Telegram не сообщил причину отказа.'),
+    ];
 }
 
 function send_chat_notification(PDO $pdo, int $recipientId, bool $fromSanta): void
@@ -731,13 +744,13 @@ try {
             if (!preg_match('/^https:\/\/[^\s]+$/i', $url)) {
                 fail('Укажи HTTPS-ссылку на telegram_bot.php');
             }
-            $ok = telegram_api('setWebhook', [
+            $telegramResult = telegram_api('setWebhook', [
                 'url' => $url,
                 'secret_token' => $secret,
                 'drop_pending_updates' => true,
             ]);
-            if (!$ok) {
-                fail('Telegram не принял webhook. Проверь token и ссылку.', 502);
+            if (!$telegramResult['ok']) {
+                fail('Telegram отклонил webhook: '.$telegramResult['error'], 502);
             }
             out(['ok' => true]);
             break;

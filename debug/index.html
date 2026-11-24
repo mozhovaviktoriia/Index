@@ -40,7 +40,7 @@
 </div>
 <main>
 <section id="v-welcome" class="welcome">
-  <div class="big" aria-label="2027">2<i>0</i>27</div>
+  <div class="big" aria-label="2026">2<i>0</i>26</div>
   <a class="cat-link" href="https://tenor.com/view/hi-otag-cat-gif-496667468136015874" target="_blank" rel="noopener noreferrer" aria-label="Открыть GIF на Tenor">
     <img class="cat" src="assets/hi-otag-transparent.gif" width="200" height="156" alt="Кот машет лапкой">
   </a>
@@ -62,6 +62,12 @@
   <div class="card"><h2 id="count"></h2><div class="chips" id="chips"></div></div>
   <div class="card">
     <h2>Срок заполнения чек-листов</h2>
+    <label for="timer-mode">Какой таймер показывать участникам</label>
+    <select id="timer-mode">
+      <option value="draw">До жеребьёвки / заполнения чек-листов</option>
+      <option value="gift">До отправки подарков 25 декабря 2026 года</option>
+    </select>
+    <p id="timer-status" class="sub"></p>
     <p class="hint">Время указано по Киеву. После срока организатор запускает жеребьёвку вручную.</p>
     <label for="deadline-input">Дата и время</label>
     <input id="deadline-input" type="datetime-local">

@@ -222,6 +222,14 @@ function get_deadline(PDO $pdo): ?string
     return $deadline->format('Y-m-d\TH:i:s\Z');
 }
 
+function get_timer_mode(PDO $pdo): string
+{
+    $st = $pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ?');
+    $st->execute(['timer_mode']);
+    $value = $st->fetchColumn();
+    return $value === 'gift' ? 'gift' : 'draw';
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
         header('Content-Type: text/html; charset=utf-8');
@@ -316,7 +324,7 @@ try {
 
     switch ($action) {
         case 'event_info':
-            out(['ok' => true, 'deadline' => get_deadline($pdo), 'drawn' => is_drawn($pdo)]);
+            out(['ok' => true, 'deadline' => get_deadline($pdo), 'drawn' => is_drawn($pdo), 'timer_mode' => get_timer_mode($pdo)]);
             break;
 
         case 'status':
@@ -529,6 +537,7 @@ try {
                 'notices' => pending_organizer_notices($pdo),
                 'drawn' => is_drawn($pdo),
                 'deadline' => get_deadline($pdo),
+                'timer_mode' => get_timer_mode($pdo),
             ]);
             break;
 
@@ -615,6 +624,17 @@ try {
             $pdo->prepare('REPLACE INTO app_settings (setting_key, setting_value) VALUES (?, ?)')
                 ->execute(['checklist_deadline_utc', $deadlineUtc->format('Y-m-d H:i:s')]);
             out(['ok' => true, 'deadline' => $deadlineUtc->format('Y-m-d\TH:i:s\Z')]);
+            break;
+
+        case 'admin_set_timer_mode':
+            require_admin($pdo, $in);
+            $mode = trim((string)($in['mode'] ?? ''));
+            if (!in_array($mode, ['draw', 'gift'], true)) {
+                fail('Выбери корректный режим таймера');
+            }
+            $pdo->prepare('REPLACE INTO app_settings (setting_key, setting_value) VALUES (?, ?)')
+                ->execute(['timer_mode', $mode]);
+            out(['ok' => true, 'timer_mode' => $mode]);
             break;
 
         case 'admin_delete':

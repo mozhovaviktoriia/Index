@@ -1,21 +1,24 @@
 // Запуск страницы: переключение экранов, приветствие, «Узнать, для кого я Санта».
 
 let eventDeadline=null,eventDrawn=false;
+const giftDeadline="2026-12-25T00:00:00+02:00";
+let timerMode="draw";
 
 function setDeadlineText(id,text){
   $(id).textContent=text;
   document.querySelectorAll(`[data-deadline-copy="${id}"]`).forEach(node=>node.textContent=text);
 }
 
-function renderDeadline(deadline,drawn){
+function renderDeadline(deadline,drawn,mode){
   eventDeadline=deadline;
   eventDrawn=!!drawn;
+  timerMode=mode==="gift"?"gift":"draw";
   $("start").disabled=eventDrawn;
   $("start").textContent=eventDrawn?"Заполнение закрыто":"Поехали";
   $("edit").disabled=eventDrawn;
   $("edit").textContent=eventDrawn?"Редактирование закрыто":"Изменить чек-лист";
   const banner=$("deadline-banner");
-  if(!eventDeadline){
+  if(timerMode==="draw"&&!eventDeadline){
     banner.classList.add("hide");
     setDeadlineText("deadline-date","");
     setDeadlineText("deadline-countdown","");
@@ -27,6 +30,21 @@ function renderDeadline(deadline,drawn){
 }
 
 function updateDeadline(){
+  if(timerMode==="gift"){
+    const date=new Date(giftDeadline);
+    setDeadlineText("deadline-date","До отправки подарков — 25 декабря 2026 года.");
+    const left=Math.floor((date.getTime()-Date.now())/1000);
+    if(left<=0){
+      setDeadlineText("deadline-countdown","Подарочки уже отправляются!");
+      setDeadlineText("deadline-note","Тайный Санта тщательно пакует сюрпризы.");
+      return;
+    }
+    const days=Math.floor(left/86400),hours=Math.floor(left%86400/3600),minutes=Math.floor(left%3600/60),seconds=left%60;
+    const pad=n=>String(n).padStart(2,"0");
+    setDeadlineText("deadline-countdown","До отправки осталось: "+(days?days+" дн ":"")+pad(hours)+" ч "+pad(minutes)+" мин "+pad(seconds)+" сек");
+    setDeadlineText("deadline-note","Тайный Санта пакует подарочки и готовит их к отправке.");
+    return;
+  }
   if(!eventDeadline)return;
   const date=new Date(eventDeadline);
   if(Number.isNaN(date.getTime())){
@@ -61,12 +79,13 @@ async function loadEventInfo(){
   const res=await api("event_info");
   if(!res.ok){
     $("deadline-banner").classList.remove("hide");
-    setDeadlineText("deadline-date","Не удалось загрузить срок чек-листов.");
-    setDeadlineText("deadline-countdown",res.error||"Обнови страницу позже.");
-    setDeadlineText("deadline-note","");
+    eventDeadline=null;
+    eventDrawn=false;
+    timerMode="draw";
+    updateDeadline();
     return;
   }
-  renderDeadline(res.deadline,res.drawn);
+  renderDeadline(res.deadline,res.drawn,res.timer_mode);
 }
 
 function showOrganizerNotice(notice,auth,onComplete){

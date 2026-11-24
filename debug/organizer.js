@@ -33,7 +33,9 @@ function renderOrg(res){
   const deadlineInput=res.deadline?kyivDateTimeInput(res.deadline):"";
   $("deadline-input").value=deadlineInput||"";
   $("deadline-status").textContent=res.deadline?(deadlineInput?"Срок установлен (время Киева).":"Не удалось прочитать сохранённый срок."):"Срок пока не установлен.";
-  renderDeadline(res.deadline,orgDrawn);
+  $("timer-mode").value=res.timer_mode==="gift"?"gift":"draw";
+  $("timer-status").textContent=res.timer_mode==="gift"?"Показан таймер до отправки подарков 25 декабря 2026 года.":"Показан таймер заполнения чек-листов.";
+  renderDeadline(res.deadline,orgDrawn,res.timer_mode);
 }
 
 function kyivDateTimeInput(value){
@@ -151,11 +153,25 @@ async function saveDeadline(value){
   const deadlineInput=res.deadline?kyivDateTimeInput(res.deadline):"";
   $("deadline-input").value=deadlineInput||"";
   $("deadline-status").textContent=res.deadline?(deadlineInput?"Срок сохранён (время Киева).":"Срок сохранён, но не удалось прочитать дату."):"Срок убран.";
-  renderDeadline(res.deadline,orgDrawn);
+  renderDeadline(res.deadline,orgDrawn,$("timer-mode").value);
 }
 
 $("deadline-save").onclick=()=>saveDeadline($("deadline-input").value);
 $("deadline-clear").onclick=()=>saveDeadline("");
+
+$("timer-mode").onchange=async()=>{
+  const mode=$("timer-mode").value;
+  $("timer-mode").disabled=true;
+  const res=await api("admin_set_timer_mode",{password:orgPw,mode});
+  $("timer-mode").disabled=false;
+  if(!res.ok){
+    showErr(res,false);
+    await loadOrg();
+    return;
+  }
+  await loadOrg();
+  $("timer-status").textContent=mode==="gift"?"Показан таймер до отправки подарков 25 декабря 2026 года.":"Показан таймер заполнения чек-листов.";
+};
 
 async function sendOrganizerNotice(){
   const recipientId=Number($("notice-recipient").value),message=$("notice-message").value.trim();

@@ -4,6 +4,20 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 require __DIR__.'/config.php';
 
+function telegram_webhook_response(?string $chatId = null, ?string $text = null): void
+{
+    if ($chatId !== null && $text !== null) {
+        echo json_encode([
+            'method' => 'sendMessage',
+            'chat_id' => $chatId,
+            'text' => $text,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    } else {
+        echo json_encode(['ok' => true]);
+    }
+    exit;
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     http_response_code(405);
     echo json_encode(['ok' => false]);
@@ -27,14 +41,12 @@ if (!is_array($message)) {
 $chatId = (string)($message['chat']['id'] ?? '');
 $text = (string)($message['text'] ?? '');
 $username = isset($message['from']['username']) ? (string)$message['from']['username'] : null;
-if ($chatId === '' || !preg_match('/^\/start(?:\s+(.+))?$/u', trim($text), $matches)) {
-    echo json_encode(['ok' => true]);
-    exit;
+if ($chatId === '' || !preg_match('/^\/start(?:@[A-Za-z0-9_]+)?(?:\s+(.+))?$/u', trim($text), $matches)) {
+    telegram_webhook_response();
 }
 $bindToken = trim((string)($matches[1] ?? ''));
 if ($bindToken === '') {
-    echo json_encode(['ok' => true]);
-    exit;
+    telegram_webhook_response($chatId, 'Не вижу кода подключения. Снова нажмите «Подключить Telegram» на сайте и отправьте боту команду целиком.');
 }
 
 $linked = false;
@@ -71,4 +83,9 @@ try {
     exit;
 }
 
-echo json_encode(['ok' => true, 'linked' => $linked]);
+telegram_webhook_response(
+    $chatId,
+    $linked
+        ? '✅ Telegram подключён. Вернитесь на сайт — статус обновится.'
+        : 'Код не найден или срок его действия истёк. На сайте нажмите «Подключить Telegram» и отправьте новую команду целиком.'
+);

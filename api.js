@@ -19,6 +19,36 @@ async function api(action,payload){
   }
 }
 
+async function sendTelegramNotification(notification){
+  if(!notification||!notification.ok){
+    return {ok:false,error:notification&&notification.error?notification.error:"Не удалось подготовить уведомление."};
+  }
+  const workerUrl=String(notification.worker_url||"").replace(/\/+$/,"");
+  if(!/^https:\/\/[^/\s]+$/i.test(workerUrl)){
+    return {ok:false,error:"Не задан корректный адрес Telegram Worker."};
+  }
+  let response;
+  try{
+    response=await fetch(workerUrl+"/notify",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ticket:notification.ticket,signature:notification.signature})
+    });
+  }catch(error){
+    return {ok:false,error:"Не удалось связаться с Telegram Worker."};
+  }
+  let result;
+  try{
+    result=await response.json();
+  }catch(error){
+    return {ok:false,error:"Telegram Worker вернул некорректный ответ."};
+  }
+  if(!response.ok||!result.ok){
+    return {ok:false,error:result.error||"Telegram Worker не отправил уведомление."};
+  }
+  return {ok:true};
+}
+
 // Черновик анкеты: сохраняется, если пришлось обновить страницу
 function saveDraft(){
   try{

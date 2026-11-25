@@ -11,13 +11,14 @@
 
 При загрузке из Git создай `debug/config.php` на основе `debug/config.example.php`. Таблицы создаются API автоматически при первом запросе.
 
-## Telegram group notifications in debug
+## Telegram group notifications
 
-The debug site sends short-lived, HMAC-signed notification tickets from the participant's browser to the Cloudflare Worker's `/notify` endpoint. The Worker sends only generic notifications to the Telegram group; chat contents and pair assignments are never included. No incoming Telegram webhook or personal Telegram binding is used.
+Both deployments send short-lived, HMAC-signed tickets from the browser to the Cloudflare Worker's `/notify` endpoint. The Worker sends generic group notifications; chat contents and pair assignments are never included. No incoming Telegram webhook or personal binding is used.
 
-1. Keep `TELEGRAM_BOT_TOKEN` only in the Worker's encrypted Secrets. Do not put it in PHP, JavaScript, or the repository.
-2. Set the Worker's `TELEGRAM_RELAY_SECRET` secret to the same value configured locally in `debug/config.php`. Set `ALLOWED_ORIGIN` to `https://tajnyj-santa.lovestoblog.com`.
-3. Delete the old Telegram webhook before using `getUpdates` to obtain the group chat ID. Do not register a webhook to the InfinityFree PHP endpoint.
-4. In the private `debug/config.php`, set `TELEGRAM_GROUP_CHAT_ID` and `TELEGRAM_RELAY_SECRET`. Never commit this file or share its values.
-5. In the debug organizer panel, save the Worker's base HTTPS URL. This only stores the URL for `/notify`; it does not call `/setup` or register a webhook.
-6. Add participant Telegram usernames in the organizer panel. Notifications go to the common group after a chat message, organizer notice, or draw. Missing usernames fall back to participant names and are flagged in the organizer panel.
+- Keep `TELEGRAM_BOT_TOKEN` only in the Worker's encrypted Secrets. Do not put it in PHP, JavaScript, or the repository.
+- Set the Worker's `TELEGRAM_RELAY_SECRET` to the same value configured in the site's private `config.php`. For the debug copy, use `debug/config.php`. If production and debug use the same Worker, both configs must use the same relay secret.
+- Set `ALLOWED_ORIGIN` to `https://tajnyj-santa.lovestoblog.com`. The production site and `/debug/` share this origin.
+- Set `TELEGRAM_GROUP_CHAT_ID` in the corresponding config. Use the same ID when both environments notify the same group.
+- Save the Worker's base HTTPS URL in each organizer panel. This stores the URL for `/notify`; it does not call `/setup` or register a webhook.
+- Add participant Telegram usernames separately in each environment. Missing usernames fall back to participant names and are flagged in the organizer panel.
+- Never commit `config.php` files or share their values. Delete any old webhook pointing to the InfinityFree PHP endpoint; do not register it again.

@@ -11,3 +11,6 @@ const DB_PASS = 'jCZQE5cUODTGxYB';
 
 // 2) Придумай пароль организатора: по нему ты будешь входить в режим организатора
 const ORG_PASSWORD = '13062005ViKtoR';
+
+const TELEGRAM_GROUP_CHAT_ID = '-5345837738';
+const TELEGRAM_RELAY_SECRET = '4VIEbKoUE7U3Lg4Sz1q4aGU5aW_niH5FbUT-4Unhfuc';

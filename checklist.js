@@ -52,7 +52,7 @@ function renderChat(){
   const el=$("v-list");
   chatDirection="giver";
   chatReady=false;
-  el.insertAdjacentHTML("beforeend",'<div class="card chat-card"><h2>Уточнить подарок</h2><p class="sub">Переписки раздельные и анонимные.</p><div class="chat-tabs" role="tablist"><button class="chat-tab" type="button" role="tab" data-direction="giver" aria-selected="true">Тому, кому дарю</button><button class="chat-tab" type="button" role="tab" data-direction="recipient" aria-selected="false">Кто дарит мне</button></div><div id="chat-status" class="sub" role="status" aria-live="polite">Загружаю сообщения…</div><div id="chat-messages" class="chat-messages" aria-live="polite"></div><label for="chat-input">Сообщение</label><div class="chat-compose"><textarea id="chat-input" maxlength="1000" placeholder="Напиши вопрос или ответ"></textarea><button id="chat-send" disabled>Отправить</button></div><p class="hint">До 1000 символов. Enter + Ctrl отправляет сообщение.</p></div>');
+  el.insertAdjacentHTML("beforeend",'<div class="card chat-card"><h2>Уточнить подарок</h2><p class="sub">Переписки раздельные и анонимные.</p><p class="hint">Уведомления о сообщениях приходят в общий чат Telegram.</p><div class="chat-tabs" role="tablist"><button class="chat-tab" type="button" role="tab" data-direction="giver" aria-selected="true">Тому, кому дарю</button><button class="chat-tab" type="button" role="tab" data-direction="recipient" aria-selected="false">Кто дарит мне</button></div><div id="chat-status" class="sub" role="status" aria-live="polite">Загружаю сообщения…</div><div id="chat-messages" class="chat-messages" aria-live="polite"></div><label for="chat-input">Сообщение</label><div class="chat-compose"><textarea id="chat-input" maxlength="1000" placeholder="Напиши вопрос или ответ"></textarea><button id="chat-send" disabled>Отправить</button></div><p class="hint">До 1000 символов. Enter + Ctrl отправляет сообщение.</p></div>');
   document.querySelectorAll(".chat-tab").forEach(button=>button.onclick=()=>selectChat(button.dataset.direction));
   $("chat-send").onclick=sendChatMessage;
   $("chat-input").addEventListener("keydown",e=>{
@@ -211,7 +211,11 @@ async function sendChatMessage(){
   input.value="";
   chatAuth.role=res.role;
   renderChatMessages(res.messages||[]);
-  status.textContent="";
+  status.textContent="Сообщение отправлено. Отправляю уведомление в Telegram-группу…";
+  const notificationResult=await sendTelegramNotification(res.notification);
+  status.textContent=notificationResult.ok
+    ? "Сообщение отправлено, уведомление доставлено в Telegram-группу."
+    : "Сообщение сохранено в чате, но уведомление в Telegram-группу не отправлено: "+notificationResult.error;
 }
 
 setInterval(()=>{

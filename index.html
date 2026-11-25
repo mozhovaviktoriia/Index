@@ -58,7 +58,19 @@
 <section id="v-draw" class="hide">
   <h1>Организатор</h1>
   <p class="sub" id="orgstate"></p>
-  <div class="card"><h2 id="count"></h2><div class="chips" id="chips"></div></div>
+  <div class="card">
+    <h2 id="count"></h2>
+    <p class="hint">Добавь Telegram-ники для упоминаний в общей группе. Без ника отправим имя участника без тега.</p>
+    <div id="chips" class="telegram-participant-list"></div>
+  </div>
+  <div class="card">
+    <h2>Уведомления в Telegram-группу</h2>
+    <p class="hint">Сайт отправляет подписанные уведомления в группу через Cloudflare Worker. Входящий Telegram webhook и привязка личных аккаунтов не используются.</p>
+    <label for="telegram-worker-url">Базовый URL Worker</label>
+    <input id="telegram-worker-url" type="url" placeholder="https://имя.аккаунт.workers.dev">
+    <div class="row"><button id="telegram-worker-save">Сохранить URL Worker</button></div>
+    <p id="telegram-worker-status" class="sub" aria-live="polite"></p>
+  </div>
   <div class="card">
     <h2>Срок заполнения чек-листов</h2>
     <label for="timer-mode">Какой таймер показывать участникам</label>

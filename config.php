@@ -7,7 +7,7 @@ const DB_NAME = 'if0_43418491_santa';
 const DB_USER = 'if0_43418491';
 
 // 1) Пароль от твоего хостинга (тот, что ты записала при создании аккаунта)
-const DB_PASS = 'ddFX4wWocNyVCUb';
+const DB_PASS = 'EOtwXlSkemFCq';
 
 // 2) Придумай пароль организатора: по нему ты будешь входить в режим организатора
 const ORG_PASSWORD = '13062005ViKtoR';

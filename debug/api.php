@@ -227,7 +227,8 @@ function create_telegram_notification(
     PDO $pdo,
     int $recipientId,
     string $namedMessage,
-    string $genericMessage
+    string $genericMessage,
+    ?array $pair = null
 ): array
 {
     $st = $pdo->prepare('SELECT name, telegram_username FROM participants WHERE id = ?');
@@ -242,12 +243,23 @@ function create_telegram_notification(
         $username = substr($username, 1);
     }
     $label = $username !== '' ? '@' . $username : (string)$recipient['name'];
-    $notification = create_group_telegram_ticket(
-        $pdo,
-        telegram_notification_names_visible($pdo)
-            ? $label . ', ' . $namedMessage
-            : $genericMessage
-    );
+    if (telegram_notification_names_visible($pdo)) {
+        $text = $label . ', ' . $namedMessage;
+    } elseif (telegram_secret_aliases_enabled($pdo) && $pair !== null) {
+        $alias = get_chat_secret_nickname(
+            $pdo,
+            $recipientId,
+            (int)$pair['giver_id'],
+            (int)$pair['target_id']
+        );
+        $text = $alias !== null
+            ? 'Кличка «' . $alias . '»: тебе пришло новое сообщение. Проверь чат.'
+            : $genericMessage;
+    } else {
+        $text = $genericMessage;
+    }
+
+    $notification = create_group_telegram_ticket($pdo, $text);
     $notification['missing_username'] = $username === '';
     return $notification;
 }
@@ -283,6 +295,76 @@ function telegram_notification_names_visible(PDO $pdo): bool
     $st = $pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ?');
     $st->execute(['telegram_show_names']);
     return $st->fetchColumn() === '1';
+}
+
+function telegram_secret_aliases_enabled(PDO $pdo): bool
+{
+    $st = $pdo->prepare('SELECT setting_value FROM app_settings WHERE setting_key = ?');
+    $st->execute(['telegram_use_aliases']);
+    return $st->fetchColumn() === '1';
+}
+
+function get_chat_secret_nickname(PDO $pdo, int $participantId, int $giverId, int $targetId): ?string
+{
+    $st = $pdo->prepare('SELECT nickname FROM chat_secret_aliases
+        WHERE participant_id = ? AND giver_id = ? AND target_id = ?');
+    $st->execute([$participantId, $giverId, $targetId]);
+    $nickname = $st->fetchColumn();
+    return $nickname === false ? null : (string)$nickname;
+}
+
+function rotate_chat_secret_nickname(PDO $pdo, int $participantId, int $giverId, int $targetId): string
+{
+    $words = [
+        'Вафелька', 'Лампочка', 'Киберлиса', 'Пельмень', 'Снежинка', 'Карамель',
+        'Комета', 'Пандочка', 'Кнопка', 'Бублик', 'Тыква', 'Морошка', 'Космонавт',
+        'Туман', 'Фонарик', 'Киви', 'Кекс', 'Луна', 'Дракон', 'Мандарин', 'Чайник',
+        'Енот', 'Пончик', 'Ракета', 'Мята', 'Пингвин', 'Какао', 'Звёздочка',
+        'Шарфик', 'Облачко', 'Молния', 'Котик',
+    ];
+    $owner = $pdo->prepare('SELECT 1 FROM chat_secret_aliases
+        WHERE nickname = ? AND NOT (participant_id = ? AND giver_id = ? AND target_id = ?)');
+    $current = $pdo->prepare('SELECT 1 FROM chat_secret_aliases
+        WHERE participant_id = ? AND giver_id = ? AND target_id = ?');
+    $update = $pdo->prepare('UPDATE chat_secret_aliases SET nickname = ?
+        WHERE participant_id = ? AND giver_id = ? AND target_id = ?');
+    $insert = $pdo->prepare('INSERT INTO chat_secret_aliases
+        (participant_id, giver_id, target_id, nickname) VALUES (?, ?, ?, ?)');
+
+    for ($attempt = 0; $attempt < 20; $attempt++) {
+        $firstWord = $words[random_int(0, count($words) - 1)];
+        $secondWord = $words[random_int(0, count($words) - 1)];
+        if ($firstWord === $secondWord) {
+            continue;
+        }
+        $nickname = $firstWord
+            . '-' . $secondWord
+            . '-' . random_int(1000, 9999);
+        if ($nickname === get_chat_secret_nickname($pdo, $participantId, $giverId, $targetId)) {
+            continue;
+        }
+        $owner->execute([$nickname, $participantId, $giverId, $targetId]);
+        if ($owner->fetchColumn()) {
+            continue;
+        }
+
+        $current->execute([$participantId, $giverId, $targetId]);
+        $exists = $current->fetchColumn() !== false;
+        try {
+            if ($exists) {
+                $update->execute([$nickname, $participantId, $giverId, $targetId]);
+            } else {
+                $insert->execute([$participantId, $giverId, $targetId, $nickname]);
+            }
+            return $nickname;
+        } catch (PDOException $e) {
+            if ($e->getCode() !== '23000') {
+                throw $e;
+            }
+        }
+    }
+
+    throw new RuntimeException('Не удалось создать уникальную секретную кличку.');
 }
 
 function is_drawn(PDO $pdo): bool
@@ -399,6 +481,16 @@ try {
         $pdo->exec('ALTER TABLE chat_messages ADD updated_at TIMESTAMP(6) NULL DEFAULT NULL');
     }
 
+    $pdo->exec('CREATE TABLE IF NOT EXISTS chat_secret_aliases (
+        participant_id INT NOT NULL,
+        giver_id INT NOT NULL,
+        target_id INT NOT NULL,
+        nickname VARCHAR(100) NOT NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (participant_id, giver_id, target_id),
+        UNIQUE KEY uq_chat_secret_nickname (nickname)
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+
     $pdo->exec('CREATE TABLE IF NOT EXISTS telegram_bindings (
         participant_id INT NOT NULL PRIMARY KEY,
         chat_id VARCHAR(64) NOT NULL,
@@ -428,6 +520,8 @@ try {
         ->execute(['checklist_locked', '0']);
     $pdo->prepare('INSERT IGNORE INTO app_settings (setting_key, setting_value) VALUES (?, ?)')
         ->execute(['telegram_show_names', '0']);
+    $pdo->prepare('INSERT IGNORE INTO app_settings (setting_key, setting_value) VALUES (?, ?)')
+        ->execute(['telegram_use_aliases', '0']);
 
     $pdo->exec('CREATE TABLE IF NOT EXISTS organizer_notices (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -598,11 +692,32 @@ try {
             }
             $direction = (string)($in['direction'] ?? 'giver');
             $pair = require_chat_pair($pdo, (int)$participant['id'], $direction);
+            $rotateAlias = $in['rotate_alias'] ?? false;
+            if (!is_bool($rotateAlias)) {
+                fail('Не удалось определить обновление секретной клички.');
+            }
+            $nickname = null;
+            if (telegram_secret_aliases_enabled($pdo)) {
+                $nickname = $rotateAlias
+                    ? rotate_chat_secret_nickname(
+                        $pdo,
+                        (int)$participant['id'],
+                        (int)$pair['giver_id'],
+                        (int)$pair['target_id']
+                    )
+                    : get_chat_secret_nickname(
+                        $pdo,
+                        (int)$participant['id'],
+                        (int)$pair['giver_id'],
+                        (int)$pair['target_id']
+                    );
+            }
             out([
                 'ok' => true,
                 'role' => $direction,
                 'direction' => $direction,
                 'messages' => chat_messages($pdo, $pair, (int)$participant['id']),
+                'secret_nickname' => $nickname,
             ]);
             break;
 
@@ -626,7 +741,8 @@ try {
                 $pdo,
                 $recipientId,
                 'в тайном Санте есть новое сообщение. Зайди на сайт.',
-                'В тайном Санте есть новое сообщение. Зайди на сайт.'
+                'В тайном Санте есть новое сообщение. Зайди на сайт.',
+                $pair
             );
             out([
                 'ok' => true,
@@ -703,6 +819,7 @@ try {
                 'notices' => pending_organizer_notices($pdo),
                 'telegram_worker_url' => (string)$workerUrl->fetchColumn(),
                 'telegram_show_names' => telegram_notification_names_visible($pdo),
+                'telegram_use_aliases' => telegram_secret_aliases_enabled($pdo),
                 'drawn' => is_drawn($pdo),
                 'deadline' => get_deadline($pdo),
                 'timer_mode' => get_timer_mode($pdo),
@@ -870,6 +987,17 @@ try {
             $pdo->prepare('REPLACE INTO app_settings (setting_key, setting_value) VALUES (?, ?)')
                 ->execute(['telegram_show_names', $showNames ? '1' : '0']);
             out(['ok' => true, 'show_names' => $showNames]);
+            break;
+
+        case 'admin_set_telegram_use_aliases':
+            require_admin($pdo, $in);
+            $useAliases = $in['use_aliases'] ?? null;
+            if (!is_bool($useAliases)) {
+                fail('Не удалось определить настройку секретных кличек.');
+            }
+            $pdo->prepare('REPLACE INTO app_settings (setting_key, setting_value) VALUES (?, ?)')
+                ->execute(['telegram_use_aliases', $useAliases ? '1' : '0']);
+            out(['ok' => true, 'use_aliases' => $useAliases]);
             break;
 
         case 'admin_delete':

@@ -17,6 +17,15 @@ function renderOrganizerNotices(notices){
   });
 }
 
+function renderTelegramAliasStatus(showNames,useAliases){
+  const status=$("telegram-use-aliases-status");
+  status.textContent=!useAliases
+    ? "Клички выключены."
+    : showNames
+      ? "Клички включены, но сейчас имя или Telegram-ник показывается вместо них."
+      : "Для новых сообщений используются текущие клички; письмо организатора и жеребьёвка остаются без адресата.";
+}
+
 // Список участников
 function renderOrg(res){
   orgDrawn=!!res.drawn;
@@ -34,6 +43,8 @@ function renderOrg(res){
   $("telegram-show-names-status").textContent=res.telegram_show_names
     ? "В групповых уведомлениях показываются имя или Telegram-ник."
     : "В групповых уведомлениях имена и ники скрыты.";
+  $("telegram-use-aliases").checked=!!res.telegram_use_aliases;
+  renderTelegramAliasStatus(!!res.telegram_show_names,!!res.telegram_use_aliases);
   const recipient=$("notice-recipient");
   recipient.innerHTML='<option value="">Выбери участника</option>'+res.participants.map(p=>'<option value="'+(+p.id)+'">'+esc(p.name)+'</option>').join("");
   recipient.disabled=!res.participants.length;
@@ -224,6 +235,22 @@ $("telegram-show-names").onchange=async()=>{
   $("telegram-show-names-status").textContent=res.show_names
     ? "В групповых уведомлениях будут показываться имя или Telegram-ник."
     : "В групповых уведомлениях имена и ники будут скрыты.";
+  renderTelegramAliasStatus(showNames,$("telegram-use-aliases").checked);
+};
+
+$("telegram-use-aliases").onchange=async()=>{
+  const input=$("telegram-use-aliases");
+  const useAliases=input.checked;
+  input.disabled=true;
+  $("telegram-use-aliases-status").textContent="Сохраняю настройку…";
+  const res=await api("admin_set_telegram_use_aliases",{password:orgPw,use_aliases:useAliases});
+  input.disabled=false;
+  if(!res.ok){
+    input.checked=!useAliases;
+    $("telegram-use-aliases-status").textContent=res.error||"Не удалось сохранить настройку кличек.";
+    return;
+  }
+  renderTelegramAliasStatus($("telegram-show-names").checked,res.use_aliases);
 };
 
 async function sendOrganizerNotice(){

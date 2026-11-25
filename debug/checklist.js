@@ -45,14 +45,27 @@ function renderList(){
 }
 
 // Анонимный чат участников одной пары.
-let chatLoading=false,chatDirection="giver",chatReady=false;
+let chatLoading=false,chatDirection="giver",chatReady=false,chatAliasPending=false;
+
+function renderChatSecretNickname(nickname){
+  const el=$("chat-secret-nickname");
+  if(!el)return;
+  if(!nickname){
+    el.textContent="";
+    el.classList.add("hide");
+    return;
+  }
+  el.textContent="Твоя секретная кличка для этой переписки: "+nickname+". Она обновится при следующем входе.";
+  el.classList.remove("hide");
+}
 
 function renderChat(){
   if(!chatAuth)return;
   const el=$("v-list");
   chatDirection="giver";
   chatReady=false;
-  el.insertAdjacentHTML("beforeend",'<div class="card chat-card"><h2>Уточнить подарок</h2><p class="sub">Переписки раздельные и анонимные.</p><p class="hint">Уведомления о сообщениях приходят в общий чат Telegram.</p><div class="chat-tabs" role="tablist"><button class="chat-tab" type="button" role="tab" data-direction="giver" aria-selected="true">Тому, кому дарю</button><button class="chat-tab" type="button" role="tab" data-direction="recipient" aria-selected="false">Кто дарит мне</button></div><div id="chat-status" class="sub" role="status" aria-live="polite">Загружаю сообщения…</div><div id="chat-messages" class="chat-messages" aria-live="polite"></div><label for="chat-input">Сообщение</label><div class="chat-compose"><textarea id="chat-input" maxlength="1000" placeholder="Напиши вопрос или ответ"></textarea><button id="chat-send" disabled>Отправить</button></div><p class="hint">До 1000 символов. Enter + Ctrl отправляет сообщение.</p></div>');
+  chatAliasPending=true;
+  el.insertAdjacentHTML("beforeend",'<div class="card chat-card"><h2>Уточнить подарок</h2><p class="sub">Переписки раздельные и анонимные.</p><p class="hint">Уведомления о сообщениях приходят в общий чат Telegram.</p><div class="chat-tabs" role="tablist"><button class="chat-tab" type="button" role="tab" data-direction="giver" aria-selected="true">Тому, кому дарю</button><button class="chat-tab" type="button" role="tab" data-direction="recipient" aria-selected="false">Кто дарит мне</button></div><div id="chat-secret-nickname" class="chat-secret-nickname hide" role="status" aria-live="polite"></div><div id="chat-status" class="sub" role="status" aria-live="polite">Загружаю сообщения…</div><div id="chat-messages" class="chat-messages" aria-live="polite"></div><label for="chat-input">Сообщение</label><div class="chat-compose"><textarea id="chat-input" maxlength="1000" placeholder="Напиши вопрос или ответ"></textarea><button id="chat-send" disabled>Отправить</button></div><p class="hint">До 1000 символов. Enter + Ctrl отправляет сообщение.</p></div>');
   document.querySelectorAll(".chat-tab").forEach(button=>button.onclick=()=>selectChat(button.dataset.direction));
   $("chat-send").onclick=sendChatMessage;
   $("chat-input").addEventListener("keydown",e=>{
@@ -67,8 +80,10 @@ function renderChat(){
 function selectChat(direction){
   if(direction===chatDirection)return;
   chatDirection=direction;
+  chatAliasPending=true;
   chatReady=false;
   $("chat-send").disabled=true;
+  renderChatSecretNickname(null);
   document.querySelectorAll(".chat-tab").forEach(button=>{
     button.setAttribute("aria-selected",button.dataset.direction===direction?"true":"false");
   });
@@ -150,18 +165,22 @@ async function loadChat(){
   if(!chatAuth||chatLoading||!$("chat-status"))return;
   const auth=chatAuth;
   const direction=chatDirection;
+  const rotateAlias=chatAliasPending;
+  chatAliasPending=false;
   chatLoading=true;
   const status=$("chat-status");
   try{
-    const res=await api("chat_load",{name:auth.name,pin:auth.pin,direction:direction});
+    const res=await api("chat_load",{name:auth.name,pin:auth.pin,direction:direction,rotate_alias:rotateAlias});
     if(chatAuth!==auth||chatDirection!==direction)return;
     if(!res.ok){
+      if(rotateAlias)chatAliasPending=true;
       chatReady=false;
       $("chat-send").disabled=true;
       status.textContent="Не удалось загрузить чат: "+(res.error||"попробуй обновить страницу.");
       return;
     }
     if(res.direction!==direction){
+      if(rotateAlias)chatAliasPending=true;
       chatReady=false;
       $("chat-send").disabled=true;
       status.textContent="Версия чата на хостинге устарела. Обнови api.php и checklist.js.";
@@ -170,6 +189,7 @@ async function loadChat(){
     chatReady=true;
     $("chat-send").disabled=false;
     chatAuth.role=res.role;
+    renderChatSecretNickname(res.secret_nickname);
     renderChatMessages(res.messages||[]);
     status.textContent="";
   }finally{

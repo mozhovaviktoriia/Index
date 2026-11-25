@@ -22,4 +22,5 @@ Both deployments send short-lived, HMAC-signed tickets from the browser to the C
 - Save the Worker's base HTTPS URL in each organizer panel. This stores the URL for `/notify`; it does not call `/setup` or register a webhook.
 - Add participant Telegram usernames separately in each environment. Missing usernames fall back to participant names and are flagged in the organizer panel.
 - The organizer's name-visibility setting applies to chat, organizer-notice, and draw notifications, and is stored separately in each environment's database.
+- In debug, the organizer can separately enable rotating secret nicknames for chat-message notifications. Each participant gets a nickname per conversation when opening it; background chat refreshes do not rotate it. Until a nickname exists, the group notification stays generic. Showing real names takes precedence over nicknames.
 - Never commit `config.php` files or share their values. Delete any old webhook pointing to the InfinityFree PHP endpoint; do not register it again.

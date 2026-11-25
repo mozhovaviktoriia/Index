@@ -13,7 +13,7 @@
 
 ## Telegram group notifications
 
-Both deployments send short-lived, HMAC-signed tickets from the browser to the Cloudflare Worker's `/notify` endpoint. The Worker sends generic group notifications; chat contents and pair assignments are never included. No incoming Telegram webhook or personal binding is used.
+Both deployments send short-lived, HMAC-signed tickets from the browser to the Cloudflare Worker's `/notify` endpoint. Group notifications hide names and usernames by default; the organizer can enable them in the panel. Chat contents and pair assignments are never included. No incoming Telegram webhook or personal binding is used.
 
 - Keep `TELEGRAM_BOT_TOKEN` only in the Worker's encrypted Secrets. Do not put it in PHP, JavaScript, or the repository.
 - Set the Worker's `TELEGRAM_RELAY_SECRET` to the same value configured in the site's private `config.php`. For the debug copy, use `debug/config.php`. If production and debug use the same Worker, both configs must use the same relay secret.
@@ -21,4 +21,5 @@ Both deployments send short-lived, HMAC-signed tickets from the browser to the C
 - Set `TELEGRAM_GROUP_CHAT_ID` in the corresponding config. Use the same ID when both environments notify the same group.
 - Save the Worker's base HTTPS URL in each organizer panel. This stores the URL for `/notify`; it does not call `/setup` or register a webhook.
 - Add participant Telegram usernames separately in each environment. Missing usernames fall back to participant names and are flagged in the organizer panel.
+- The organizer's name-visibility setting applies to chat, organizer-notice, and draw notifications, and is stored separately in each environment's database.
 - Never commit `config.php` files or share their values. Delete any old webhook pointing to the InfinityFree PHP endpoint; do not register it again.

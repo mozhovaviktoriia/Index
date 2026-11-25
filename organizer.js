@@ -24,12 +24,16 @@ function renderOrg(res){
   $("chips").innerHTML=res.participants.map(p=>{
     const username=String(p.telegram_username||"");
     const hasUsername=username!=="";
-    return '<div class="telegram-participant-row"><div class="telegram-participant-heading"><strong>'+esc(p.name)+'</strong><button class="x" data-r="'+(+p.id)+'" aria-label="Удалить">✕</button></div><div class="telegram-username-form"><label>Telegram-ник<input type="text" maxlength="33" placeholder="@username" value="'+esc(username)+'"></label><button type="button" class="alt" data-telegram-save="'+(+p.id)+'">Сохранить</button></div><p class="hint telegram-username-warning'+(hasUsername?" hide":"")+'">Ник не задан: уведомление в группе будет содержать имя без тега.</p><p class="sub telegram-username-status" role="status" aria-live="polite"></p></div>';
+    return '<div class="telegram-participant-row"><div class="telegram-participant-heading"><strong>'+esc(p.name)+'</strong><button class="x" data-r="'+(+p.id)+'" aria-label="Удалить">✕</button></div><div class="telegram-username-form"><label>Telegram-ник<input type="text" maxlength="33" placeholder="@username" value="'+esc(username)+'"></label><button type="button" class="alt" data-telegram-save="'+(+p.id)+'">Сохранить</button></div><p class="hint telegram-username-warning'+(hasUsername?" hide":"")+'">Ник не задан: при включённом показе имён уведомление будет содержать имя без тега.</p><p class="sub telegram-username-status" role="status" aria-live="polite"></p></div>';
   }).join("");
   $("telegram-worker-url").value=res.telegram_worker_url||"";
   $("telegram-worker-status").textContent=res.telegram_worker_url
     ? "Адрес Worker сохранён. Для уведомлений используется /notify, webhook Telegram не нужен."
     : "Сохрани базовый HTTPS-адрес Cloudflare Worker для отправки групповых уведомлений.";
+  $("telegram-show-names").checked=!!res.telegram_show_names;
+  $("telegram-show-names-status").textContent=res.telegram_show_names
+    ? "В групповых уведомлениях показываются имя или Telegram-ник."
+    : "В групповых уведомлениях имена и ники скрыты.";
   const recipient=$("notice-recipient");
   recipient.innerHTML='<option value="">Выбери участника</option>'+res.participants.map(p=>'<option value="'+(+p.id)+'">'+esc(p.name)+'</option>').join("");
   recipient.disabled=!res.participants.length;
@@ -203,6 +207,23 @@ $("telegram-worker-save").onclick=async()=>{
   button.disabled=false;
   $("telegram-worker-url").value=saved.worker_url||url;
   $("telegram-worker-status").textContent="Адрес Worker сохранён. Для уведомлений используется /notify; webhook Telegram не нужен.";
+};
+
+$("telegram-show-names").onchange=async()=>{
+  const input=$("telegram-show-names");
+  const showNames=input.checked;
+  input.disabled=true;
+  $("telegram-show-names-status").textContent="Сохраняю настройку…";
+  const res=await api("admin_set_telegram_show_names",{password:orgPw,show_names:showNames});
+  input.disabled=false;
+  if(!res.ok){
+    input.checked=!showNames;
+    $("telegram-show-names-status").textContent=res.error||"Не удалось сохранить настройку.";
+    return;
+  }
+  $("telegram-show-names-status").textContent=res.show_names
+    ? "В групповых уведомлениях будут показываться имя или Telegram-ник."
+    : "В групповых уведомлениях имена и ники будут скрыты.";
 };
 
 async function sendOrganizerNotice(){

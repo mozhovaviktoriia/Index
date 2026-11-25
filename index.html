@@ -60,7 +60,7 @@
   <p class="sub" id="orgstate"></p>
   <div class="card">
     <h2 id="count"></h2>
-    <p class="hint">Добавь Telegram-ники для упоминаний в общей группе. Без ника отправим имя участника без тега.</p>
+    <p class="hint">Добавь Telegram-ники для упоминаний в общей группе. Если показ имён включён, для участника без ника отправим имя без тега.</p>
     <div id="chips" class="telegram-participant-list"></div>
   </div>
   <div class="card">
@@ -70,6 +70,9 @@
     <input id="telegram-worker-url" type="url" placeholder="https://имя.аккаунт.workers.dev">
     <div class="row"><button id="telegram-worker-save">Сохранить URL Worker</button></div>
     <p id="telegram-worker-status" class="sub" aria-live="polite"></p>
+    <label class="telegram-name-setting"><input id="telegram-show-names" type="checkbox"> Показывать имя или Telegram-ник в группе</label>
+    <p class="hint">Если выключено, новые уведомления и сообщение о жеребьёвке будут без имён и ников. Уже отправленные сообщения не изменятся.</p>
+    <p id="telegram-show-names-status" class="sub" aria-live="polite"></p>
   </div>
   <div class="card">
     <h2>Срок заполнения чек-листов</h2>

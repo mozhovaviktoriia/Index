@@ -711,6 +711,18 @@ dialog h2 {
   margin-bottom:0;
 }
 
+.telegram-name-setting {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:14px;
+}
+
+.telegram-name-setting input {
+  width:auto;
+  margin:0;
+}
+
 .telegram-username-warning,
 .telegram-username-status {
   margin:8px 0 0;

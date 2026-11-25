@@ -87,7 +87,7 @@ function renderChatMessages(messages){
   const other=chatDirection==="giver"?"Получатель":"Санта";
   list.innerHTML=messages.map(message=>{
     const actions=message.fromYou?'<div class="chat-actions"><button type="button" class="chat-action" data-chat-edit="'+(+message.id)+'">Изменить</button><button type="button" class="chat-action" data-chat-delete="'+(+message.id)+'">Удалить</button></div>':"";
-    return '<div class="chat-message'+(message.fromYou?" mine":"")+'"><strong>'+(message.fromYou?"Ты":other)+'</strong>'+(message.edited?'<small class="chat-edited">изменено</small>':"")+'<p>'+esc(message.text)+'</p><time>'+esc(message.sentAt)+'</time>'+actions+'</div>';
+    return '<div class="chat-message'+(message.fromYou?" mine":"")+'"><strong>'+(message.fromYou?"Ты":other)+'</strong>'+(message.edited?'<small class="chat-edited">изменено</small>':"")+'<p>'+esc(message.text)+'</p>'+actions+'</div>';
   }).join("");
   list.scrollTop=list.scrollHeight;
   list.querySelectorAll("button[data-chat-edit]").forEach(button=>button.onclick=()=>{

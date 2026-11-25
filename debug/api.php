@@ -252,9 +252,11 @@ function create_telegram_notification(
             (int)$pair['giver_id'],
             (int)$pair['target_id']
         );
-        $text = $alias !== null
-            ? 'Кличка «' . $alias . '»: тебе пришло новое сообщение. Проверь чат.'
-            : $genericMessage;
+        if ($alias !== null) {
+            $text = 'Кличка «' . $alias . '»: тебе пришло новое сообщение. Проверь чат.';
+        } else {
+            $text = $genericMessage;
+        }
     } else {
         $text = $genericMessage;
     }
